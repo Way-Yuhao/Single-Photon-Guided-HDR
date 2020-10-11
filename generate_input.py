@@ -45,16 +45,16 @@ cv2.imwrite(_path + "ldr.hdr", ldr_img)
 # ldr_temp = cv2.imread(_path + "ldr.hdr", -1)
 
 ldr_img = (ldr_img - ldr_img.min()) / (ldr_img.max() - ldr_img.min())
-ldr_img *= 2**16
-ldr_img = ldr_img.astype(np.uint16)
-ldr_img[ldr_img <= 0] = 2**16 - 1
+# ldr_img *= 2**16
+# ldr_img = ldr_img.astype(np.uint16)
+# ldr_img[ldr_img <= 0] = 2**16 - 1
 
-cv2.imwrite(_path + "ldr.png", ldr_img)
+cv2.imwrite(_path + "ldr.png", ldr_img * 255)
 
-test = hdr_img
-test = (test - test.min()) / (test.max() - test.min())
-test *= 2**16
-test = test.astype(np.uint16)
-test[test <= 0] = 2**16 - 1
-
-cv2.imwrite(_path + "test.png", test)
+# test = hdr_img
+# test = (test - test.min()) / (test.max() - test.min())
+# test *= 2**16
+# test = test.astype(np.uint16)
+# test[test <= 0] = 2**16 - 1
+#
+# cv2.imwrite(_path + "test.png", test)
