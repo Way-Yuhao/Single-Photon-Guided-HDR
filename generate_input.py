@@ -1,4 +1,9 @@
-
+"""
+generate_input.py:
+This module takes in a 32-bit HDR image and outputs the following:
+    A low-resolution, 32-bit image. The dynamic range is retained while the image is downsampled by 4x
+    A high-resolution, 8-bit image. The dynamic range is truncated while the image maintaines the same dimensions.
+"""
 
 import cv2
 import numpy as np
@@ -25,6 +30,7 @@ print("resolution = {} x {}".format(lr_height, lr_width))
 # print(low_res_img.max())
 # cv2.imshow('image', low_res_img)
 cv2.imwrite(_path + "low_res.hdr", low_res_img)
+cv2.imwrite(_path + "low_res.png", low_res_img)
 
 # generating ldr image
 # reduce
