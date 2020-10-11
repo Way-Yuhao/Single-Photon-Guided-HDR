@@ -15,10 +15,12 @@ _output_path = "./input/starter/high_res.hdr"
 lr_img = cv2.imread(_img_path, -1)  # low resolution
 lr_width = len(lr_img[0])
 lr_height = len(lr_img)
-hr_img = np.zeros((2*lr_height, 2*lr_width, 3), dtype=np.float32)
+hr_img = np.zeros((4*lr_height, 4*lr_width, 3), dtype=np.float32)
 for i in range(lr_height):
     for j in range(lr_width):
         for c in range(3):
-            hr_img[2*i+1][2*j+1][c], hr_img[2*i+1][2*j][c] = lr_img[i][j][c], lr_img[i][j][c]  # every upper row
-            hr_img[2*i][2*j+1][c], hr_img[2*i][2*j][c] = lr_img[i][j][c], lr_img[i][j][c]  # every lower row
+            hr_img[4*i+3][4*j][c], hr_img[4*i+3][4*j+1][c], hr_img[4*i+3][4*j+2][c], hr_img[4*i+3][4*j+3][c] = lr_img[i][j][c], lr_img[i][j][c], lr_img[i][j][c], lr_img[i][j][c]
+            hr_img[4*i+2][4*j][c], hr_img[4*i+2][4*j+1][c], hr_img[4*i+2][4*j+2][c], hr_img[4*i+2][4*j+3][c] = lr_img[i][j][c], lr_img[i][j][c], lr_img[i][j][c], lr_img[i][j][c]
+            hr_img[4*i+1][4*j][c], hr_img[4*i+1][4*j+1][c], hr_img[4*i+1][4*j+2][c], hr_img[4*i+1][4*j+3][c] = lr_img[i][j][c], lr_img[i][j][c], lr_img[i][j][c], lr_img[i][j][c]
+            hr_img[4*i][4*j][c], hr_img[4*i][4*j+1][c], hr_img[4*i][4*j+2][c], hr_img[4*i][4*j+3][c] = lr_img[i][j][c], lr_img[i][j][c], lr_img[i][j][c], lr_img[i][j][c]  # every lower row
 cv2.imwrite(_output_path, hr_img)
