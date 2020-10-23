@@ -1,6 +1,4 @@
-"""
 
-"""
 
 import cv2
 import numpy as np
@@ -23,10 +21,11 @@ def read_img():
     hdr_img = tonemapDrago.process(hdr_img)
     return ldr_img, hdr_img
 
-"""
-Linearizes both image to [0, 1]
-"""
+
 def linearize(ldr_img, hdr_img):
+    """
+    Linearizes both image to [0, 1]
+    """
     ldr_img = (ldr_img - ldr_img.min()) / (ldr_img.max() - ldr_img.min())  # rescale to [0, 1]
     print(np.nanmax(hdr_img))
     print(np.nanmin(hdr_img))
