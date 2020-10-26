@@ -30,10 +30,13 @@ def expose(hdr_img):
     :return: simulated CMOS image
     """
     ldr_img = hdr_img.copy()
-    ldr_img = ldr_img * gain  # apply gain
+    ldr_img = ldr_img * gain
     ldr_img[ldr_img >= fwc] = fwc
     ldr_img[ldr_img < 1.0] = 0
     ldr_img = ldr_img.astype(np.uint16)
+    # adding poisson noise
+    for p in np.nditer(ldr_img, op_flags=['readwrite']):
+        p[...] = np.random.poisson(p)
     return ldr_img
 
 
