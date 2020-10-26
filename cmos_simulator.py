@@ -10,8 +10,8 @@ import numpy as np
 
 _path = "./input/simulator/"
 fwc = 2**12  # full well capacity with a 12 bit sensor
-T = 1  # exposure time in seconds
-gain = 10000  # uniform gain applied to the analog signal
+T = 1000  # exposure time in seconds
+gain = 100  # uniform gain applied to the analog signal
 q = 1  # quantum efficiency index
 
 
@@ -33,7 +33,7 @@ def expose(flux):
     * clip at the full well capacity of the sensor
     * apply gain to the "analog" signal
     * convert to digital(uint16) signal
-    :param hdr_img:
+    :param flux: photon flux at every pixel locations
     :return: simulated CMOS image
     """
     img = flux.copy()
@@ -52,17 +52,17 @@ def expose(flux):
     return img
 
 
-def save_img(ldr_img):
+def save_img(img):
     """
     outputs 16 bit png img
-    :param ldr_img:
-    :return:
+    :param img:
+    :return: None
     """
     # ldr_img = (ldr_img - ldr_img.min()) / (ldr_img.max() - ldr_img.min())
     # ldr_img *= 2 ** 16
     # ldr_img = ldr_img.astype(np.uint16)
     # ldr_img[ldr_img <= 0] = 2 ** 16 - 1
-    cv2.imwrite(_path + "ldr.png", ldr_img)
+    cv2.imwrite(_path + "ldr.png", img)
 
 
 def main():
