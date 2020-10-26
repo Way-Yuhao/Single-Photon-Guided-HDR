@@ -1,4 +1,3 @@
 import numpy as np
-
-a = [1, 2, 3]
-print(a[-4])
+s = np.random.poisson(5, 1)
+print(s)
