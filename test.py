@@ -1,7 +1,6 @@
 import numpy as np
-# A = np.array([[100, 200], [300, 40000]])
-# for p in np.nditer(A, op_flags=['readwrite']):
-#     p[...] = np.random.poisson(p)
-
-
-print(np.random.poisson(3.5))
+import cv2
+_path = "./input/simulator/"
+a = cv2.imread(_path + "yes.hdr", -1)
+b = np.load(_path + "photon_count.npy")
+print("what")

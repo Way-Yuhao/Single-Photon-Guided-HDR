@@ -17,6 +17,7 @@ tau = 150e-9  # dead time in seconds
 
 """IMAGE ACQUISITION PHASE"""
 
+
 def read_flux():
     """
     read in a 32-bit hdr ground truth image. Pixels values are treated as photon flux
@@ -30,6 +31,7 @@ def read_flux():
 def down_sample(img):
     img = img.copy()[::4, ::4, :]
     return img
+
 
 def scale_flux(flux):
     flux *= 100000
@@ -52,7 +54,7 @@ def expose(flux):
         var = num / den**3  # variance of photon counts
         p[...] = np.random.normal(mean, var**.5)
     # apply quantization and ensure correct range of [0, T/tau]
-    img = img.astype(np.uint32)
+    img = np.rint(img)
     img[img <= 0] = 0
     ub = T / tau  # upper bound, asymptotic saturation of SPAD
     img[img >= ub] = ub
@@ -61,7 +63,7 @@ def expose(flux):
 
 def save_photon_counts(photon_counts):
     """
-    outputs 32 bit
+    outputs 32 bit photon counts
     :param ldr_img:
     :return:
     """
@@ -80,13 +82,30 @@ def linearize(img):
     return img
 
 
+def save_hdr_img(img):
+    """
+
+    :param img:
+    :return: 32-bit hdr image
+    """
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    radiance_writer(img, _path + "yes.hdr")
+
+
 def save_img(img):
-    # img *= gain
+    """
+    :param img:
+    :return: 16-bit tone-mapped png
+    """
+    tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
+    img = tonemapDrago.process(img)
     img = (img - img.min()) / (img.max() - img.min())
     img *= 2 ** 16
     img = img.astype(np.uint16)
     img[img >= 2 ** 16 - 1] = 2 ** 16 - 1
     cv2.imwrite(_path + "yes.png", img)
+
+
 
 def main():
     flux = read_flux()
@@ -94,7 +113,8 @@ def main():
     flux = down_sample(flux)
     img = expose(flux)
     save_photon_counts(img)
-    # img = linearize(img)
+    img = linearize(img)
+    save_hdr_img(img)
     save_img(img)
 
 if __name__ == "__main__":
