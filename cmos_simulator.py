@@ -58,17 +58,14 @@ def save_img(img):
     :param img:
     :return: None
     """
-    # ldr_img = (ldr_img - ldr_img.min()) / (ldr_img.max() - ldr_img.min())
-    # ldr_img *= 2 ** 16
-    # ldr_img = ldr_img.astype(np.uint16)
-    # ldr_img[ldr_img <= 0] = 2 ** 16 - 1
-    cv2.imwrite(_path + "ldr.png", img)
+    cv2.imwrite(_path + "cmos_img.png", img)
 
 
 def main():
     flux = read_img()
     img = expose(flux)
     save_img(img)
+
 
 if __name__ == "__main__":
     main()
