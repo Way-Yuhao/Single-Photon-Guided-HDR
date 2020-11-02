@@ -4,11 +4,15 @@ This module runs spad and cmos simulators
 
 import cv2
 import os
+from matplotlib import pyplot as plt
 from spad_simulator import SPADSimulator
 from cmos_simulator import CMOSSimulator
+import progressbar
+
 """global parameters"""
 fpath = "./input/53_HDRI/"
 out_path = "./input/out/"
+plt_path = "./input/plt/"
 
 """SPAD parameters"""
 SPAD_Sim = None
@@ -59,21 +63,33 @@ def run_sumulations(flux, id):
     CMOS_Sim.process(id)
 
 
+def save_hist(flux, id):
+    plt.hist(flux.flatten(), bins=100, log=True)
+    plt.title("Photon flux values for scene {} after rescaling".format(id))
+    plt.xlabel("photon flux values")
+    plt.ylabel("pixel counts")
+    plt.savefig(plt_path + 'plt_{}.png'.format(id))
+    plt.clf()
+
+
+
 def main():
+    path, dirs, files = next(os.walk(fpath))
+    file_count = len([x for x in files if "hdr" in x])
+    print("processing {} hdr files".format(file_count))
     id = 0
-    for filename in os.listdir(fpath):
-        flux = read_flux(os.path.join(fpath, filename))
-        flux = scale_flux(flux)
-        init_simulators()
-        run_sumulations(flux, str(id))
-        id += 1
-        break
-
-    # flux = read_flux()
-    # flux = scale_flux(flux)
-    # init_simulators()
-    # run_sumulations(flux)
-
+    with progressbar.ProgressBar(max_value=file_count) as bar:
+        bar.update(id)
+        for filename in os.listdir(fpath):
+            if not filename.endswith(".hdr"):
+                continue
+            flux = read_flux(os.path.join(fpath, filename))
+            flux = scale_flux(flux)
+            init_simulators()
+            run_sumulations(flux, str(id))
+            save_hist(flux, id)
+            bar.update(id)
+            id += 1
 
 if __name__ == "__main__":
     main()
