@@ -1,6 +1,9 @@
 import numpy as np
 import cv2
-_path = "./input/simulator/"
-a = cv2.imread(_path + "yes.hdr", -1)
-b = np.load(_path + "photon_count.npy")
-print("what")
+import os
+path = "./input/53 HDRI/"
+for filename in os.listdir(path):
+    print(os.path.join(path, filename))
+    img = cv2.imread(os.path.join(path, filename), -1)
+    cv2.imshow(img)
+    break

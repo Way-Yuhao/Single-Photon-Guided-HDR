@@ -7,15 +7,15 @@ This module is designed to simulate SPAD photon-counting output given a 32-bit g
 import cv2
 import numpy as np
 from radiance_writer import radiance_writer
+from PIL import Image, ImageEnhance
 
 
 class SPADSimulator(object):
 
-    def __init__(self, q=1, tau=150e-9, downsp_rate=4, id="", path="./"):
+    def __init__(self, q=1, tau=150e-9, downsp_rate=4, path="./"):
         self.tau = tau
         self.q = q
         self.downsp_rate = downsp_rate
-        self.id = id
         self.path = path
         self.img = None
 
@@ -31,8 +31,8 @@ class SPADSimulator(object):
         # adding poisson noise
         for p in np.nditer(img, op_flags=['readwrite']):
             phi = p  # photon flux
-            num = q * phi * T  # numerator
-            den = 1 + q * phi * tau  # denominator
+            num = self.q * phi * T  # numerator
+            den = 1 + self.q * phi * self.tau  # denominator
             mean = num / den  # expectation of photon counts
             var = num / den ** 3  # variance of photon counts
             p[...] = np.random.normal(mean, var ** .5)
@@ -54,27 +54,27 @@ class SPADSimulator(object):
 
     """IMAGE PROCESSING PIPELINE"""
 
-    def process(self, T, gain):
+    def process(self, T, gain, id=""):
         img = self.img.copy()  # processed image
         img = self.linearize(img, T)
-        self.save_hdr_img(self, img)
-        self.save_img(self, img, gain)
+        self.save_hdr_img(img, id)
+        self.save_img(img, gain, id)
 
     def linearize(self, img, T):
         for N in np.nditer(img, op_flags=['readwrite']):
             N[...] = N / (T - N * self.tau)
         return img
 
-    def save_hdr_img(self, img):
+    def save_hdr_img(self, img, id):
         """
 
         :param img:
         :return: 32-bit hdr image
         """
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        radiance_writer(img, self.path + "spad_img_32.hdr")
+        radiance_writer(img, self.path + id + "_spad.hdr")
 
-    def save_img(self, img, gain):
+    def save_img(self, img, gain, id):
         """
         :param img:
         :return: 16-bit tone-mapped png
@@ -82,8 +82,7 @@ class SPADSimulator(object):
         tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
         img = tonemapDrago.process(img)
         img = (img - img.min()) / (img.max() - img.min())
-        img *= gain  # FIXME
         img *= 2 ** 16
         img = img.astype(np.uint16)
         img[img >= 2 ** 16 - 1] = 2 ** 16 - 1
-        cv2.imwrite(self.path + "spad_img.png", img)
+        cv2.imwrite(self.path + id + "_spad_16bit.png", img)
