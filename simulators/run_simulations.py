@@ -5,14 +5,14 @@ This module runs spad and cmos simulators
 import cv2
 import os
 from matplotlib import pyplot as plt
-from spad_simulator import SPADSimulator
-from cmos_simulator import CMOSSimulator
+from simulators.spad_simulator import SPADSimulator
+from simulators.cmos_simulator import CMOSSimulator
 import progressbar
 
 """global parameters"""
 fpath = "./input/53_HDRI/"
-out_path = "./input/out/"
-plt_path = "./input/plt/"
+out_path = "../input/out/"
+plt_path = "../input/plt/"
 
 """SPAD parameters"""
 SPAD_Sim = None

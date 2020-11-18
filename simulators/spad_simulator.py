@@ -6,8 +6,7 @@ This module is designed to simulate SPAD photon-counting output given a 32-bit g
 
 import cv2
 import numpy as np
-from radiance_writer import radiance_writer
-from PIL import Image, ImageEnhance
+from simulators.radiance_writer import radiance_writer
 
 
 class SPADSimulator(object):

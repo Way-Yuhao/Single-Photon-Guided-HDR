@@ -13,6 +13,6 @@ l = ['suburban_field_02_2k.hdr', 'pump_station_2k.hdr', 'abandoned_factory_cante
      'rooitou_park_2k.hdr', 'railway_bridge_02_2k.hdr', 'forest_slope_2k.hdr']
 
 
-for f in l:
-    if "hdr" not in f:
-        print(f)
+from tqdm import tqdm
+for i in tqdm(range(10000)):
+    ...
