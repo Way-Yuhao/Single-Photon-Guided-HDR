@@ -1,0 +1,9 @@
+name: SPAD
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - pillow
+  - progressbar2
+  - tqdm
+prefix: /Users/wayyuhao/opt/miniconda3/envs/SPAD
