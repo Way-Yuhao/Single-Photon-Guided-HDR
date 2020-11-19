@@ -8,6 +8,6 @@ To create an environment named spad_hdr_38:
 
 
 Then, cd to requirement dir and update conda virtual environment: 
-    `conda env update --file conda_env.yaml --name spad_hdr_38`
+    `conda env update --file conda_env_multiplt.yaml --name spad_hdr_38`
 
  
