@@ -10,7 +10,7 @@ from simulators.cmos_simulator import CMOSSimulator
 import progressbar
 
 """global parameters"""
-fpath = "./input/53_HDRI/"
+fpath = "../input/53_HDRI/"
 out_path = "../input/out/"
 plt_path = "../input/plt/"
 
@@ -28,6 +28,10 @@ CMOS_fwc = 2**12  # full well capacity with a 12 bit sensor
 CMOS_T = .01  # exposure time in seconds
 CMOS_gain = 100  # uniform gain applied to the analog signal
 CMOS_q = 1  # quantum efficiency index
+
+
+def resave_gt(fname, id):
+    os.rename(fname, '../input/gt/{}.hdr'.format(id))
 
 
 def read_flux(fname):
@@ -54,6 +58,7 @@ def init_simulators():
     SPAD_Sim = SPADSimulator(SPAD_q, SPAD_tau, SPAD_down_sample_rate, path=out_path)
     CMOS_Sim = CMOSSimulator(q=CMOS_q, fwc=CMOS_fwc, downsp_rate=1, path=out_path)
 
+
 def run_sumulations(flux, id):
     global SPAD_Sim, CMOS_Sim
     SPAD_Sim.expose(flux, SPAD_T)
@@ -72,7 +77,6 @@ def save_hist(flux, id):
     plt.clf()
 
 
-
 def main():
     path, dirs, files = next(os.walk(fpath))
     file_count = len([x for x in files if "hdr" in x])
@@ -88,6 +92,7 @@ def main():
             init_simulators()
             run_sumulations(flux, str(id))
             save_hist(flux, id)
+            # resave_gt(os.path.join(fpath, filename), id)
             bar.update(id)
             id += 1
 
