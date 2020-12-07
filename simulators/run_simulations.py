@@ -11,7 +11,7 @@ import progressbar
 
 """global parameters"""
 fpath = "../input/53_HDRI/"
-out_path = "../input/out/"
+out_path = "../simulated_inputs/CMOS_mid/"
 plt_path = "../input/plt/"
 
 """SPAD parameters"""
@@ -23,12 +23,17 @@ SPAD_tau = 150e-9  # dead time in seconds
 SPAD_down_sample_rate = 4
 
 """CMOS parameters"""
+# CMOS_Sim = None
+# CMOS_fwc = 2**12  # full well capacity with a 12 bit sensor
+# CMOS_T = .01  # exposure time in seconds
+# CMOS_gain = 100  # uniform gain applied to the analog signal
+# CMOS_q = 1  # quantum efficiency index
+
 CMOS_Sim = None
 CMOS_fwc = 2**12  # full well capacity with a 12 bit sensor
-CMOS_T = .01  # exposure time in seconds
+CMOS_T = .005  # exposure time in seconds
 CMOS_gain = 100  # uniform gain applied to the analog signal
 CMOS_q = 1  # quantum efficiency index
-
 
 def resave_gt(fname, id):
     os.rename(fname, '../input/gt/{}.hdr'.format(id))
@@ -55,14 +60,14 @@ def scale_flux(flux):
 
 def init_simulators():
     global SPAD_Sim, CMOS_Sim
-    SPAD_Sim = SPADSimulator(SPAD_q, SPAD_tau, SPAD_down_sample_rate, path=out_path)
+    # SPAD_Sim = SPADSimulator(SPAD_q, SPAD_tau, SPAD_down_sample_rate, path=out_path)
     CMOS_Sim = CMOSSimulator(q=CMOS_q, fwc=CMOS_fwc, downsp_rate=1, path=out_path)
 
 
 def run_sumulations(flux, id):
     global SPAD_Sim, CMOS_Sim
-    SPAD_Sim.expose(flux, SPAD_T)
-    SPAD_Sim.process(SPAD_T, SPAD_gain, id)
+    # SPAD_Sim.expose(flux, SPAD_T)
+    # SPAD_Sim.process(SPAD_T, SPAD_gain, id)
 
     CMOS_Sim.expose(flux, CMOS_T, CMOS_gain)
     CMOS_Sim.process(id)

@@ -1,4 +1,8 @@
-
+"""
+This module runs luminance fusion between a CMOS and SPAD image.
+Requirements:
+    * the 2 input images have the same dimensions
+"""
 
 import cv2
 import numpy as np
@@ -7,7 +11,7 @@ from simulators.radiance_writer import radiance_writer
 
 _ldr_path = "./simulated_inputs/CMOS/5_cmos.png"
 _hdr_path = "./simulated_inputs/SPAD_HDR_SR/5_spad_bilinear.hdr"
-_out_img_path = "./fusion_results/"
+_out_img_path = "./playground/"
 
 tau = .9  # threshold
 gamma = 4  # actually is 1/gamma
@@ -29,8 +33,8 @@ def rescale(ldr_img, hdr_img):
     """
     hdr_img = (hdr_img - ldr_img.min()) / (ldr_img.max() - ldr_img.min())  # rescale to [0, 1]
     ldr_img = (ldr_img - ldr_img.min()) / (ldr_img.max() - ldr_img.min())  # rescale to [0, 1]
-    print(np.nanmax(hdr_img))
-    print(np.nanmin(hdr_img))
+    # print(np.nanmax(hdr_img))
+    # print(np.nanmin(hdr_img))
     return ldr_img, hdr_img
 
 
@@ -91,11 +95,11 @@ def color_hist(ldr, hdr):
     # ldr
     plt.subplot(1, 2, 1)
     for channel, col in enumerate(color):
-        histr = cv2.calcHist([ldr], [channel], None, [2**16], [0, 2**17])
+        histr = cv2.calcHist([ldr], [channel], None, [2**16], [0, 2**16])
         plt.plot(histr, color=col)
-        plt.xlim([0, 2**16])
+        # plt.xlim([0, 2**14])
         plt.ylim([0, 30000])
-    plt.title("Histogram of 8-bit LDR Image")
+    plt.title("Histogram of simulated CMOS data")
     plt.xlabel("pixel values")
     plt.ylabel("pixel counts")
     # plt.show()
@@ -103,12 +107,11 @@ def color_hist(ldr, hdr):
     # hdr
     plt.subplot(1, 2, 2)
     for channel, col in enumerate(color):
-        histr = cv2.calcHist([hdr], [channel], None, [2**16], [0, 2**17])
+        histr = cv2.calcHist([hdr], [channel], None, [2**16], [0, 2**18])
         plt.plot(histr, color=col)
-        plt.xlim([0, 2**16])
+        # plt.xlim([0, 2**16])
         plt.ylim([0, 30000])
-    plt.title('Histogram for color scale picture')
-    plt.title("Histogram of 32-bit HDR Image")
+    plt.title("Histogram of simulated SPAD data")
     plt.xlabel("pixel values")
     plt.ylabel("pixel counts")
     plt.show()
@@ -154,6 +157,7 @@ def plot_weight_func():
     title_txt = "Weighting Function when tau = {}".format(tau)
     plt.title(title_txt)
     plt.show()
+
 
 
 if __name__ == "__main__":
