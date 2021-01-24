@@ -23,11 +23,6 @@ SPAD_gain = 10             # uniform gain applied to the analog signal
 SPAD_tau = 150e-9          # dead time in seconds
 SPAD_down_sample_rate = 4  # spatial down sampling rate of the sensor
 SPAD_qe = .4               # quantum efficiency index
-# SPAD_qe = {                 # quantum efficiency index
-#     'r': .40,
-#     'g': .40,
-#     'b': .40
-# }
 
 """CMOS parameters"""
 CMOS_Sim = None

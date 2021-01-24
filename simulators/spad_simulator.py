@@ -24,26 +24,6 @@ class SPADSimulator(object):
         flux = flux.copy()[::r, ::r, :]
         return flux
 
-    def expose_new(self, flux, T):
-
-        if self.downsp_rate != 1:
-            flux = self.down_sample_flux(flux)
-        if self.isMono:  # monochrome
-            b, g, r = cv2.split(flux)
-            img = 179 * (0.2126 * r + 0.7152 * g + 0.0722 * b)  # convert to monochrome
-        else:  # color sensor
-            img = flux
-        img = (T * self.q * img) / (1 + self.q * img * self.tau)  # expectation of photon counts
-        for p in np.nditer(img, op_flags=['readwrite']):
-            var = (T * self.q * p) / (1 + self.q * p * self.tau)**3  # variance of photon counts
-            p[...] = np.random.normal(p, var ** .5)  # adding photon noise by drawing a normal variable
-        # apply quantization and ensure correct range of [0, T/tau]
-        img = np.rint(img)
-        img[img <= 0] = 0
-        ub = T / self.tau  # upper bound, asymptotic saturation of SPAD
-        img[img >= ub] = ub
-        self.img = img
-
     def expose(self, flux, T):
         if self.downsp_rate != 1:
             flux = self.down_sample_flux(flux)
