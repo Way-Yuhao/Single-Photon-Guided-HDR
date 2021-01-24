@@ -27,5 +27,5 @@ plt_path = #  filepath for histograms of ground truth, after some scaling
 ```
 Then, twek the parameters for the SPAD and CMOS simulator, and run the scirpt via
 ```bash
-python run _simulations.py
+python run_simulations.py
 ```
