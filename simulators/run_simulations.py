@@ -11,20 +11,28 @@ import progressbar
 
 """global parameters"""
 fpath = "../input/53_HDRI/"
-out_path = "../simulated_inputs/CMOS_mid/"
-plt_path = "../input/plt/"
+out_path = "../playground/sim/"
+plt_path = "../playground/plt/"
 
 """SPAD parameters"""
 SPAD_Sim = None
+SPAD_on = True             # toggle on to enable SPAD simulator
+SPAD_mono = True          # if the sensor is monochromatic
 SPAD_T = .01               # exposure time in seconds
 SPAD_gain = 10             # uniform gain applied to the analog signal
-SPAD_qe = .4               # quantum efficiency index
 SPAD_tau = 150e-9          # dead time in seconds
 SPAD_down_sample_rate = 4  # spatial down sampling rate of the sensor
-SPAD_mono = True           # if the sensor is monochromatic
+SPAD_qe = .4               # quantum efficiency index
+# SPAD_qe = {                 # quantum efficiency index
+#     'r': .40,
+#     'g': .40,
+#     'b': .40
+# }
 
 """CMOS parameters"""
 CMOS_Sim = None
+CMOS_on = True              # toggle on to enable CMOS simulator
+CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
 CMOS_T = .01                # exposure time in seconds
 CMOS_gain = 100             # uniform gain applied to the analog signal
@@ -33,6 +41,7 @@ CMOS_qe = {                 # quantum efficiency index for each color channel
     'g' : .75,
     'b' : .77
 }
+
 
 def resave_gt(fname, id):
     """
@@ -63,28 +72,23 @@ def scale_flux(flux):
     return flux
 
 
-def check_cam_params():
-    """
-    checks if the camera parameters are valid
-    :return: None
-    """
-
-
-
 
 def init_simulators():
     global SPAD_Sim, CMOS_Sim
-    # SPAD_Sim = SPADSimulator(SPAD_q, SPAD_tau, SPAD_down_sample_rate, path=out_path)
-    CMOS_Sim = CMOSSimulator(q=CMOS_qe, fwc=CMOS_fwc, downsp_rate=1, path=out_path)
+    if SPAD_on:
+        SPAD_Sim = SPADSimulator(q=SPAD_qe, tau=SPAD_tau, downsp_rate=SPAD_down_sample_rate, isMono=SPAD_mono, path=out_path)
+    if CMOS_on:
+        CMOS_Sim = CMOSSimulator(q=CMOS_qe, fwc=CMOS_fwc, downsp_rate=1, path=out_path)
 
 
 def run_sumulations(flux, id):
     global SPAD_Sim, CMOS_Sim
-    # SPAD_Sim.expose(flux, SPAD_T)
-    # SPAD_Sim.process(SPAD_T, SPAD_gain, id)
-
-    CMOS_Sim.expose(flux, CMOS_T, CMOS_gain)
-    CMOS_Sim.process(id)
+    if SPAD_on:
+        SPAD_Sim.expose(flux, SPAD_T)
+        SPAD_Sim.process(SPAD_T, SPAD_gain, id)
+    if CMOS_on:
+        CMOS_Sim.expose(flux, CMOS_T, CMOS_gain)
+        CMOS_Sim.process(id)
 
 
 def save_hist(flux, id):

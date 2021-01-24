@@ -11,15 +11,15 @@ from tqdm import trange
 from luminance_fusion import rescale, fusion
 from simulators.radiance_writer import radiance_writer
 
-CMOS_dir_path = "../simulated_inputs/CMOS/"
+CMOS_dir_path = "../simulated_outputs/CMOS/"
 CMOS_suffix = "_cmos.png"
 CMOS_ftype = "png"
-# SPAD_dir_path = "../simulated_inputs/SPAD_HDR_SR/"
+# SPAD_dir_path = "../simulated_outputs/SPAD_HDR_SR/"
 # SPAD_suffix = "_spad_bilinear.hdr"
 # SPAD_ftype = "hdr"
 # out_dir_path = "../fusion_results/"  # relative path to radiance_writer.py
 
-SPAD_dir_path = "../simulated_inputs/CMOS_mid/"
+SPAD_dir_path = "../simulated_outputs/CMOS_mid/"
 SPAD_suffix = "_cmos.png"
 SPAD_ftype = "png"
 out_dir_path = "../exposure_bracketing/long+mid/"  # relative path to radiance_writer.py

@@ -9,8 +9,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from simulators.radiance_writer import radiance_writer
 
-_ldr_path = "./simulated_inputs/CMOS/5_cmos.png"
-_hdr_path = "./simulated_inputs/SPAD_HDR_SR/5_spad_bilinear.hdr"
+_ldr_path = "./simulated_outputs/CMOS/5_cmos.png"
+_hdr_path = "./simulated_outputs/SPAD_HDR_SR/5_spad_bilinear.hdr"
 _out_img_path = "./playground/"
 
 tau = .9  # threshold

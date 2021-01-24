@@ -2,8 +2,8 @@ import cv2
 import os
 import progressbar
 
-in_path = "../simulated_inputs/SPAD_HDR/"
-out_path = "../simulated_inputs/SPAD_HDR_SR/"
+in_path = "../simulated_outputs/SPAD_HDR/"
+out_path = "../simulated_outputs/SPAD_HDR_SR/"
 upres_rate = 4
 
 path, dirs, files = next(os.walk(in_path))
