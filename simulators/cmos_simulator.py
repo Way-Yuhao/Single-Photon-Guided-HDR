@@ -11,10 +11,10 @@ import numpy as np
 
 class CMOSSimulator(object):
 
-    def __init__(self, q=1, fwc=2**12, downsp_rate=1, path="./"):
+    def __init__(self, q, fwc, downsp_rate, path):
         self.fwc = fwc
-        self.q = q
         self.downsp_rate = downsp_rate
+        self.q = np.array([q["b"], q["g"], q["r"]])
         self.path = path
         self.img = None
 
@@ -23,7 +23,7 @@ class CMOSSimulator(object):
         flux = flux.copy()[::r, ::r, :]
         return flux
 
-    def expose(self, flux, T, gain):
+    def expose(self, flux, T):
         """
             simulate an exposure with a CMOS sensor.
             * simulate at every pixel for a given photon flux and exposure time
@@ -35,6 +35,7 @@ class CMOSSimulator(object):
             :return: simulated CMOS image
             """
         img = flux.copy()
+        img = img * self.q
         img = img * T
         # adding poisson noise
         for p in np.nditer(img, op_flags=['readwrite']):
@@ -42,16 +43,17 @@ class CMOSSimulator(object):
         # clipping at the full well capacity of the sensor
         img[img >= self.fwc] = self.fwc
         img[img < 1.0] = 0
+        self.img = img
+    """IMAGE PROCESSING PIPELINE"""
+
+    def process(self, gain, id=""):
+        img = self.img / self.q
         # applying gain
         img = gain * img
         # apply quantization and ensure correct range for a 16-bit output
         img[img >= 2 ** 16 - 1] = 2 ** 16 - 1
         img = img.astype(np.uint16)
         self.img = img
-
-    """IMAGE PROCESSING PIPELINE"""
-
-    def process(self, id=""):
         self.save_img(id)
 
     def save_img(self, id):

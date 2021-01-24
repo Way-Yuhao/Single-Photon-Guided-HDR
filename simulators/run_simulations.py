@@ -43,6 +43,7 @@ CMOS_qe = {                 # quantum efficiency index for each color channel
 }
 
 
+
 def resave_gt(fname, id):
     """
     resaves ground truth files with an ordered naming scheme
@@ -87,8 +88,8 @@ def run_sumulations(flux, id):
         SPAD_Sim.expose(flux, SPAD_T)
         SPAD_Sim.process(SPAD_T, SPAD_gain, id)
     if CMOS_on:
-        CMOS_Sim.expose(flux, CMOS_T, CMOS_gain)
-        CMOS_Sim.process(id)
+        CMOS_Sim.expose(flux, CMOS_T)
+        CMOS_Sim.process(CMOS_gain, id)
 
 
 def save_hist(flux, id):
