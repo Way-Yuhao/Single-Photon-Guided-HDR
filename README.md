@@ -1,13 +1,31 @@
 # SPAD-Guided-HDR
-Setup guide:
-This is a guided that attempts to help you set up virtual environment across different platforms, 
-and it may be buggy.
+Implementation of simulators for Single-photon avalanche diodes and CMOS sensors.
 
-To create an environment named spad_hdr_38:
-    `conda create -n myenv python=3.8`
+## Requirements
+```
+numpy~=1.18.5
+matplotlib~=3.2.1
+opencv-python~=4.2.0.34
+scikit-image~=0.17.2
+torch~=1.7.1
+tqdm~=4.50.2
+```
+Install all dependent libraries:
+  ```bash
+  pip install -r requirements.txt
+  ```
 
 
-Then, cd to requirement dir and update conda virtual environment: 
-    `conda env update --file conda_env_multiplt.yaml --name spad_hdr_38`
+## Run the file
+We require the file format for the HDR ground truth files to be .HDR. Note that .exr will not work with this implementation
 
- 
+Add all your folders to run_simulations.py:
+```angular2
+fpath =    # file path for input data 
+out_path = # filepath for simulated output 
+plt_path = #  filepath for histograms of ground truth, after some scaling
+```
+Then, twek the parameters for the SPAD and CMOS simulator, and run the scirpt via
+```bash
+python run _simulations.py
+```
