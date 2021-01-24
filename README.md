@@ -11,7 +11,7 @@ torch~=1.7.1
 tqdm~=4.50.2
 ```
 Install all dependent libraries:
-  ```bash
+  ```
   pip install -r requirements.txt
   ```
 

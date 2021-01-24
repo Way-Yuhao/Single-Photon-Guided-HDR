@@ -16,26 +16,31 @@ plt_path = "../input/plt/"
 
 """SPAD parameters"""
 SPAD_Sim = None
-SPAD_T = .01  # exposure time in seconds
-SPAD_gain = 10  # uniform gain applied to the analog signal
-SPAD_q = 1  # quantum efficiency index
-SPAD_tau = 150e-9  # dead time in seconds
-SPAD_down_sample_rate = 4
+SPAD_T = .01               # exposure time in seconds
+SPAD_gain = 10             # uniform gain applied to the analog signal
+SPAD_qe = .4               # quantum efficiency index
+SPAD_tau = 150e-9          # dead time in seconds
+SPAD_down_sample_rate = 4  # spatial down sampling rate of the sensor
+SPAD_mono = True           # if the sensor is monochromatic
 
 """CMOS parameters"""
-# CMOS_Sim = None
-# CMOS_fwc = 2**12  # full well capacity with a 12 bit sensor
-# CMOS_T = .01  # exposure time in seconds
-# CMOS_gain = 100  # uniform gain applied to the analog signal
-# CMOS_q = 1  # quantum efficiency index
-
 CMOS_Sim = None
-CMOS_fwc = 2**12  # full well capacity with a 12 bit sensor
-CMOS_T = .005  # exposure time in seconds
-CMOS_gain = 100  # uniform gain applied to the analog signal
-CMOS_q = 1  # quantum efficiency index
+CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
+CMOS_T = .01                # exposure time in seconds
+CMOS_gain = 100             # uniform gain applied to the analog signal
+CMOS_qe = {                 # quantum efficiency index for each color channel
+    'r' : .40,
+    'g' : .75,
+    'b' : .77
+}
 
 def resave_gt(fname, id):
+    """
+    resaves ground truth files with an ordered naming scheme
+    :param fname:
+    :param id:
+    :return:
+    """
     os.rename(fname, '../input/gt/{}.hdr'.format(id))
 
 
@@ -51,17 +56,26 @@ def read_flux(fname):
 
 def scale_flux(flux):
     """
-    scales the flux matrix
-    :return:
+    scales the flux matrix by a constant
+    :return: scaled ground truth matrix
     """
     flux *= 100000
     return flux
 
 
+def check_cam_params():
+    """
+    checks if the camera parameters are valid
+    :return: None
+    """
+
+
+
+
 def init_simulators():
     global SPAD_Sim, CMOS_Sim
     # SPAD_Sim = SPADSimulator(SPAD_q, SPAD_tau, SPAD_down_sample_rate, path=out_path)
-    CMOS_Sim = CMOSSimulator(q=CMOS_q, fwc=CMOS_fwc, downsp_rate=1, path=out_path)
+    CMOS_Sim = CMOSSimulator(q=CMOS_qe, fwc=CMOS_fwc, downsp_rate=1, path=out_path)
 
 
 def run_sumulations(flux, id):
