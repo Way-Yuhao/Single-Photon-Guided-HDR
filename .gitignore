@@ -2,3 +2,6 @@
 /exposure_bracketing/long+mid0_fusion.hdr
 /exposure_bracketing/long+short/
 /input/
+/HDR-ExpandNet/
+/playground/
+/Unet-Segmentation-Pytorch-Nest-of-Unets-master/
