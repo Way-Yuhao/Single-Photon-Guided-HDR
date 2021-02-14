@@ -103,12 +103,19 @@ torchsummary.summary(model_test, input_size=(3, 128, 128))
 #Passing the Dataset of Images and Labels
 #######################################################
 
-t_data = '/flush1/bat161/segmentation/New_Trails/venv/DATA/new_3C_I_ori/'
-l_data = '/flush1/bat161/segmentation/New_Trails/venv/DATA/new_3C_L_ori/'
-test_image = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_I_ori/0131_0009.png'
+# t_data = '/flush1/bat161/segmentation/New_Trails/venv/DATA/new_3C_I_ori/'
+# l_data = '/flush1/bat161/segmentation/New_Trails/venv/DATA/new_3C_L_ori/'
+# test_image = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_I_ori/0131_0009.png'
+# test_label = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_L_ori/0131_0009.png'
+# test_folderP = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_I_ori/*'
+# test_folderL = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_L_ori/*'
+
+t_data = '../data/carvana-image-masking-challenge/train/'
+l_data = '../data/carvana-image-masking-challenge/train_masks/'
+test_image = './sample.jpg'
 test_label = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_L_ori/0131_0009.png'
-test_folderP = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_I_ori/*'
-test_folderL = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_L_ori/*'
+# test_folderP = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_I_ori/*'
+# test_folderL = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_L_ori/*'
 
 Training_Data = Images_Dataset_folder(t_data,
                                       l_data)
