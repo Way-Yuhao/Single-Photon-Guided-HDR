@@ -47,12 +47,12 @@ device = torch.device("cuda:0" if train_on_gpu else "cpu")
 #Setting the basic paramters of the model
 #######################################################
 
-batch_size = 4
+batch_size = 32
 print('batch_size = ' + str(batch_size))
 
 valid_size = 0.15
 
-epoch = 15
+epoch = 1
 print('epoch = ' + str(epoch))
 
 random_seed = random.randint(1, 100)
@@ -110,10 +110,10 @@ torchsummary.summary(model_test, input_size=(3, 128, 128))
 # test_folderP = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_I_ori/*'
 # test_folderL = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_L_ori/*'
 
-t_data = '../data/carvana-image-masking-challenge/train/'
-l_data = '../data/carvana-image-masking-challenge/train_masks/'
-test_image = './sample.jpg'
-test_label = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_L_ori/0131_0009.png'
+t_data = '../../data/carvana-image-masking-challenge/train/'
+l_data = '../../data/carvana-image-masking-challenge/train_masks/'
+test_image = '../../data/carvana-image-masking-challenge/test_sample/0cdf5b5d0ce1_01.jpg'
+test_label = '../../data/carvana-image-masking-challenge/test_sample/0cdf5b5d0ce1_01_mask.gif'
 # test_folderP = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_I_ori/*'
 # test_folderL = '/flush1/bat161/segmentation/New_Trails/venv/DATA/test_new_3C_L_ori/*'
 
@@ -298,8 +298,11 @@ for i in range(epoch):
 
     im_tb = Image.open(test_image)
     im_label = Image.open(test_label)
-    s_tb = data_transform(im_tb)
-    s_label = data_transform(im_label)
+    # s_tb = data_transform(im_tb)
+    transform_temp = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), torchvision.transforms.Normalize([0.5], [0.5])])
+    s_tb = transform_temp(im_tb)
+    # s_label = data_transform(im_label)
+    s_label = transform_temp(im_label)
     s_label = s_label.detach().numpy()
 
     pred_tb = model_test(s_tb.unsqueeze(0).to(device)).cpu()
