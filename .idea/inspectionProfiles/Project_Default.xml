@@ -1,0 +1,36 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="16">
+            <item index="0" class="java.lang.String" itemvalue="scipy" />
+            <item index="1" class="java.lang.String" itemvalue="GitPython" />
+            <item index="2" class="java.lang.String" itemvalue="joblib" />
+            <item index="3" class="java.lang.String" itemvalue="h5py" />
+            <item index="4" class="java.lang.String" itemvalue="pickleshare" />
+            <item index="5" class="java.lang.String" itemvalue="ipython" />
+            <item index="6" class="java.lang.String" itemvalue="multiprocessing" />
+            <item index="7" class="java.lang.String" itemvalue="numpy" />
+            <item index="8" class="java.lang.String" itemvalue="pandas" />
+            <item index="9" class="java.lang.String" itemvalue="tqdm" />
+            <item index="10" class="java.lang.String" itemvalue="ipython-genutils" />
+            <item index="11" class="java.lang.String" itemvalue="seaborn" />
+            <item index="12" class="java.lang.String" itemvalue="gnureadline" />
+            <item index="13" class="java.lang.String" itemvalue="matplotlib" />
+            <item index="14" class="java.lang.String" itemvalue="progressbar" />
+            <item index="15" class="java.lang.String" itemvalue="Pillow" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8NamingInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="N806" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
