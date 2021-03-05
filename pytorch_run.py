@@ -24,7 +24,7 @@ eps = 0.000000001  # for numerical stability
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 1
-epoch = 100
+epoch = 1000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 def set_device():
@@ -55,17 +55,12 @@ def print_params():
 
 def down_sample(input, target, down_sp_rate):
     global down_sp_msg_printed
-    orig_dim = list(input.size())[1:]
     # m = nn.AvgPool2d(down_sp_rate, stride=down_sp_rate)
     # input = m(input)
     # target = m(target)
-
     input = input[:, :, ::down_sp_rate, ::down_sp_rate]
     target = target[:, :, ::down_sp_rate, ::down_sp_rate]
 
-    # print(target.shape)
-
-    new_dim = list(input.size())[1:]
     return input, target
 
 
@@ -79,11 +74,11 @@ def normalize(output, target):
 
 
 def tone_map(output, target):
-    # mu = 5000  # amount of compression
-    mu = 1
+    mu = 5000  # amount of compression
+    # mu = 1
     lb = output.min() * mu
-    output = torch.log(1 + torch.abs(lb) + mu * output) / np.log(1 + mu)
-    target = torch.log(1 + torch.abs(lb) + mu * target) / np.log(1 + mu)
+    output = torch.log(1 + mu * output) / np.log(1 + mu)
+    target = torch.log(1 + mu * target) / np.log(1 + mu)
     return output, target
 
 
@@ -94,8 +89,14 @@ def compute_l1_loss(output, target):
     return l1_loss
 
 
-def train(net, device):
+def train(net, device, tb, load_weights=False):
     print("training")
+    net.train()
+
+    if load_weights:
+        net.load_state_dict(torch.load("./model/unet/unet.pth"))
+        print("loading pretrained weights")
+
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
     train_input_loader = load_hdr_data(train_input_path, transform)
     train_label_loader = load_hdr_data(train_label_path, transform)
@@ -106,7 +107,6 @@ def train(net, device):
 
     # training loop
     running_loss = 0.0
-    loss_tbl = np.array([])
     for ep in range(epoch):
         print("Epoch ", ep)
         train_input_iter = iter(train_input_loader)
@@ -126,22 +126,21 @@ def train(net, device):
             running_loss += loss.item()
         # print statistics
         loss_cur_batch = running_loss / batch_size
-        loss_tbl = np.append(loss_tbl, loss_cur_batch)
         print("loss = {:.3f}".format(loss_cur_batch))
-        # print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / batch_size))
+        tb.add_scalar('training loss', loss_cur_batch, ep)
         running_loss = 0.0
 
     print("finished training")
-    print(loss_tbl)
-    np.savetxt("./model/unet/loss.csv", loss_tbl, delimiter=",")
     torch.save(net.state_dict(), train_param_path)
     return
 
 
-def test_single(net, device):
+def test_single(net, tb):
+    global batch_size
+    batch_size = 1
     print("testing")
 
-    net.load_state_dict(torch.load("./unet.pth"))
+    net.load_state_dict(torch.load("./model/unet/unet.pth"))
 
     test_input_path = "../data/CMOS/1/0_cmos.png"
     test_label_path = "../data/ground_truth/1/0.hdr"
@@ -151,17 +150,8 @@ def test_single(net, device):
     h, w, c = test_img.shape
     input_data = torch.from_numpy(test_img).view(c, h, w).unsqueeze(0)
     label_data = torch.from_numpy(label_img).view(c, h, w).unsqueeze(0)
-    label_img = label_data.numpy().squeeze().reshape(h, w, c)
     input_data, label_data = down_sample(input_data, label_data, 4)
     input_data, label_data = normalize(input_data, label_data)
-
-    # print(input_data.shape)
-    # label_img = input_data.numpy().squeeze().reshape(256, 512, c)
-    # label_img *= 2**16
-    # label_img[label_img >= 2 ** 16 - 1] = 2 ** 16 - 1
-    # label_img = label_img.astype(np.uint16)
-    # cv2.imwrite("./sample_label.png", label_img)
-    # return
 
     net.eval()
     with torch.no_grad():
@@ -170,45 +160,86 @@ def test_single(net, device):
         print("loss = ", loss)
         _, c, h, w = outputs.shape
         output_img = outputs.numpy().squeeze().reshape(h, w, c)
-        print(output_img.shape)
-        # plt.imshow(output_img)
-        # plt.show()
+
+        plt.imshow(output_img)
+        plt.show()
+
+        output_img *= 2**16
+        output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
+        output_img = output_img.astype(np.uint16)
         cv2.imwrite("./sample_output.png", output_img)
-        label_img = label_data.numpy().squeeze().reshape(h, w, c)
-        label_img *= 2**16
-        label_img[label_img >= 2 ** 16 - 1] = 2 ** 16 - 1
-        label_img = label_img.astype(np.uint16)
         cv2.imwrite("./sample_label.png", label_img)
 
-        # def process(self, gain, id=""):
-        #     img = self.img / self.q
-        #     # applying gain
-        #     img = gain * img
-        #     # apply quantization and ensure correct range for a 16-bit output
-        #     img[img >= 2 ** 16 - 1] = 2 ** 16 - 1
-        #     img = img.astype(np.uint16)
-        #     self.img = img
-        #     self.save_img(id)
-        #
-        # def save_img(self, id):
-        #     """
-        #     outputs 16 bit png img
-        #     :param img:
-        #     :return: None
-        #     """
-        #     cv2.imwrite(self.path + id + "_cmos.png", self.img)
+        tb_id = "2"
+        tb.add_image("ground truth" + tb_id, label_data.squeeze())
+        tb.add_image("prediction" + tb_id, outputs.squeeze())
+
+
+def tb_display_test(tb):
+    global batch_size
+    batch_size = 1
+
+    test_input_path = "../data/CMOS/1/0_cmos.png"
+    test_label_path = "../data/ground_truth/1/0.hdr"
+
+    # test_img = cv2.imread(test_input_path, -1).astype("float32")
+    # label_img = cv2.imread(test_label_path, -1).astype("float32")
+    # h, w, c = test_img.shape
+    # input_data = torch.from_numpy(test_img).view(c, h, w).unsqueeze(0)
+    # label_data = torch.from_numpy(label_img).view(c, h, w).unsqueeze(0)
+    # input_data, label_data = down_sample(input_data, label_data, 4)
+    # input_data, label_data = normalize(input_data, label_data)
+    # label_img = label_data.numpy().squeeze().reshape(h, w, c)
+
+
+
+    img = cv2.imread(test_label_path, -1)
+    img = img[::4, ::4, :]
+    print(img.shape)
+    # brg to rgb
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # plt.imshow(np.log(img))
+    # plt.show()
+
+    # torch.set_printoptions(precision=8)
+
+    # img = img.astype("float32")
+    # img = img / img.max()
+
+    t = torch.from_numpy(img)
+
+    img_rcv = t.numpy()
+    plt.imshow(img_rcv)
+    plt.show()
+
+    tb.add_image("img7", t, dataformats="HWC")
+    tb.flush()
+
+
+
+def tensorboard_add_graph(tb, model):
+    transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
+    train_input_loader = load_hdr_data(train_input_path, transform)
+    train_label_loader = load_hdr_data(train_label_path, transform)
+    assert (len(train_input_loader.dataset) == len(train_label_loader.dataset))
+    images, label = next(iter(train_input_loader))
+    grid = torchvision.utils.make_grid(images)
+    tb.add_images("images", grid)  # FIXME: dim mismatch
+    tb.add_graph(model, images)
+    return
 
 
 def main():
     device = set_device()  # set device to CUDA if available
-    # tb = SummaryWriter(".runs/AttU-Net")
-    # net = AttU_Net(img_ch=3, output_ch=3)
-    net = U_Net(in_ch=3, out_ch=3)
-    net.to(device)
+    tb = SummaryWriter('./runs/unet_cont')
     print_params()
-    print(net)
-    # train(net, device)
-    # test_single(net, "cpu")
+    net = U_Net(in_ch=3, out_ch=3)
+    # net.to(device)
+    # train(net, device, tb, load_weights=True)
+    test_single(net, tb)
+    # tb_display_test(tb)
+    tb.close()
+
 
 if __name__ == "__main__":
     main()

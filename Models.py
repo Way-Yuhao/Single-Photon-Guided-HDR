@@ -117,6 +117,8 @@ class U_Net(nn.Module):
 
         out = self.Conv(d2)
 
+        out = F.relu(out)  # extra ReLU
+
         #d1 = self.active(out)
 
         return out
