@@ -159,14 +159,16 @@ def test_single(net, tb):
         loss = compute_l1_loss(outputs, label_data)
         print("loss = ", loss)
         _, c, h, w = outputs.shape
-        output_img = outputs.numpy().squeeze().reshape(h, w, c)
+        output_img = outputs.squeeze().permute(1, 2, 0)
 
         plt.imshow(output_img)
         plt.show()
 
+        output_img = output_img.numpy()
         output_img *= 2**16
         output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
         output_img = output_img.astype(np.uint16)
+        output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
         cv2.imwrite("./sample_output.png", output_img)
         cv2.imwrite("./sample_label.png", label_img)
 
