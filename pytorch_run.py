@@ -22,11 +22,11 @@ from hdr_data_loader import customDataFolder
 
 """Global Parameters"""
 train_param_path = "./model/unet/unet.pth"
-train_input_path = "../data/CMOS-10"
-train_label_path = "../data/ground_truth-10"
+train_input_path = "../data/CMOS"
+train_label_path = "../data/ground_truth"
 down_sp_msg_printed = False
 down_sp_rate = 16  # down sample rate
-# eps = 0.000000001  # for numerical stability
+version = None
 
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
@@ -95,22 +95,31 @@ def compute_l1_loss(output, target):
     return l1_loss
 
 
-def train(net, device, tb, load_weights=False):
-    print("training")
-    net.train()
+def save_16bit_png(img, path):
+    output_img = img.detach().cpu().squeeze().permute(1, 2, 0).numpy()
+    output_img *= 2 ** 16
+    output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
+    output_img = output_img.astype(np.uint16)
+    output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
+    cv2.imwrite(path, output_img)
+    print("16-bit PNG save to ", path)
+    return
 
+
+def train(net, device, tb, load_weights=False):
+    print_params()  # print hyper parameters
+    print("training")
+    net.to(device)
+    net.train()
     if load_weights:
         net.load_state_dict(torch.load("./model/unet/unet.pth"))
         print("loading pretrained weights")
-
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
     train_input_loader = load_hdr_data(train_input_path, transform)
     train_label_loader = load_hdr_data(train_label_path, transform)
     assert (len(train_input_loader.dataset) == len(train_label_loader.dataset))
-    num_mini_batches = len(train_input_loader)
+    num_mini_batches = len(train_input_loader)  # number of mini-batches per epoch
 
-
-    #TODO: init?
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
 
     # training loop
@@ -133,7 +142,7 @@ def train(net, device, tb, load_weights=False):
             optimizer.step()
             running_loss += loss.item()
         # print statistics
-        loss_cur_batch = running_loss / batch_size  # FIXME
+        loss_cur_batch = running_loss / num_mini_batches  # FIXME
         print("loss = {:.3f}".format(loss_cur_batch))
         tb.add_scalar('training loss', loss_cur_batch, ep)
         running_loss = 0.0
@@ -176,12 +185,16 @@ def test(net, tb):
     plt.title("test/output")
     plt.show()
 
-    output_img = outputs.cpu().squeeze().permute(1, 2, 0).numpy()
-    output_img *= 2 ** 16
-    output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
-    output_img = output_img.astype(np.uint16)
-    output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
-    cv2.imwrite("./sample_output.png", output_img)
+    save_16bit_png(outputs, "./out_files/test_output_{}.png".format(version))
+
+
+
+    # output_img = outputs.cpu().squeeze().permute(1, 2, 0).numpy()
+    # output_img *= 2 ** 16
+    # output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
+    # output_img = output_img.astype(np.uint16)
+    # output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
+    # cv2.imwrite("./sample_output.png", output_img)
 
     return
 
@@ -284,18 +297,15 @@ def tensorboard_add_graph(tb, model):
 
 
 def main():
-    global batch_size
-    testing = True
+    global batch_size, version
+    version = "v0.1"
+
+    tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
-    if testing:
-        device = "cpu"
-        batch_size = 1
-    tb = SummaryWriter('./runs/unet_test')
-    print_params()
     net = U_Net(in_ch=3, out_ch=3)
-    net.to(device)
-    # train(net, device, tb, load_weights=True)
-    # test_single(net, tb)
+    #
+    # train(net, device, tb, load_weights=True, version)
+    # test_single(net, tb, version)
     test(net, tb)
     # tb_display_test(tb)
     tb.close()
