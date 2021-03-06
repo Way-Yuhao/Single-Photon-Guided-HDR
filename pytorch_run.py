@@ -16,10 +16,8 @@ from Models import AttU_Net, U_Net
 from hdr_data_loader import customDataFolder
 
 # TODO: add tonemapping for tb vis
-# init
 # batch-norm
 # net.train, net.eval
-# same pipeline
 
 """Global Parameters"""
 train_param_path = "./model/unet/unet.pth"
@@ -31,8 +29,8 @@ version = None
 
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
-batch_size = 8
-epoch = 500
+batch_size = 4
+epoch = 5000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -58,7 +56,10 @@ def print_params():
     print("batch size = ", batch_size)
     print("epoch = ", epoch)
     print("initial learning rate = ", init_lr)
-    print("################")
+    print("##################################")
+    print("######## Other Parameters ########")
+    print("down sampling rate = ", down_sp_rate)
+    print("##################################")
     return
 
 
@@ -131,7 +132,7 @@ def train(net, device, tb, load_weights=False):
     net.to(device)
     net.train()
     if load_weights:
-        net.load_state_dict(torch.load("./model/unet/unet.pth"))
+        net.load_state_dict(torch.load(train_param_path))
         print("loading pretrained weights")
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
     train_input_loader = load_hdr_data(train_input_path, transform)
@@ -143,6 +144,7 @@ def train(net, device, tb, load_weights=False):
 
     # training loop
     running_loss = 0.0
+    outputs = None
     for ep in range(epoch):
         print("Epoch ", ep)
         train_input_iter = iter(train_input_loader)
@@ -164,11 +166,18 @@ def train(net, device, tb, load_weights=False):
         loss_cur_batch = running_loss / num_mini_batches  # FIXME
         print("loss = {:.3f}".format(loss_cur_batch))
         tb.add_scalar('training loss', loss_cur_batch, ep)
+
+        if ep % 100 == 99:  # for every 100 epochs
+            save_16bit_png(outputs[1, :, :, :], path="./out_files/test_epoch_{}_version_{}.png".format(ep, version))
+            disp_plt(outputs[1, :, :, :], title="sample trining output in epoch {} // Model version {}".format(ep, version))
         running_loss = 0.0
 
+    save_16bit_png(label_data[1, :, :, :], path="./out_files/sample_ground_truth.png".format(ep))
+
     print("finished training")
-    tb.add_image("train_test_tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
-    tb.add_image("train_test_lin", outputs.detach().cpu().squeeze())
+    # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
+    # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
+    # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
     torch.save(net.state_dict(), train_param_path)
     return
 
@@ -197,8 +206,9 @@ def test(net, tb):
         loss = compute_l1_loss(outputs, label_data)
 
     print("loss at test time = ", loss.item())
-    tb.add_image("test_tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
-    tb.add_image("test_linear/max", outputs.detach().cpu().squeeze() / outputs.max())
+    tb.add_image("test_output/linear", outputs.detach().cpu().squeeze())
+    tb.add_image("test_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
+    tb.add_image("test_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
     disp_plt(img=outputs, title="test/new output", normalize=False)
     save_16bit_png(outputs, "./out_files/test_output_{}.png".format(version))
     return
@@ -303,14 +313,12 @@ def tensorboard_add_graph(tb, model):
 
 def main():
     global batch_size, version
-    version = "v0.1"
-
+    version = "v0.2"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    #
-    # train(net, device, tb, load_weights=True)
-    test(net, tb)
+    train(net, device, tb, load_weights=False)
+    # test(net, tb)
     tb.close()
 
 
