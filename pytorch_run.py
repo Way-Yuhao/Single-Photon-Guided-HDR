@@ -14,17 +14,24 @@ import matplotlib.pyplot as plt
 from Models import AttU_Net, U_Net
 from hdr_data_loader import customDataFolder
 
+# TODO: add tonemapping for tb vis
+# init
+# batch-norm
+# net.train, net.eval
+# same pipeline
+
 """Global Parameters"""
 train_param_path = "./model/unet/unet.pth"
-train_input_path = "../data/CMOS"
-train_label_path = "../data/ground_truth"
+train_input_path = "../data/CMOS-10"
+train_label_path = "../data/ground_truth-10"
 down_sp_msg_printed = False
-eps = 0.000000001  # for numerical stability
+down_sp_rate = 16  # down sample rate
+# eps = 0.000000001  # for numerical stability
 
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
-batch_size = 1
-epoch = 1000
+batch_size = 8
+epoch = 500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 def set_device():
@@ -55,28 +62,27 @@ def print_params():
 
 def down_sample(input, target, down_sp_rate):
     global down_sp_msg_printed
-    # m = nn.AvgPool2d(down_sp_rate, stride=down_sp_rate)
-    # input = m(input)
-    # target = m(target)
     input = input[:, :, ::down_sp_rate, ::down_sp_rate]
     target = target[:, :, ::down_sp_rate, ::down_sp_rate]
 
     return input, target
 
 
-def normalize(output, target):
-    # output = TF.normalize(output, mean=torch.mean(output), std=torch.std(output))
-    # target = TF.normalize(target, mean=torch.mean(target), std=torch.std(target))
+def normalize(input, target):
     target = target * 100000
-    target = target / torch.max(output)
-    output = output / torch.max(output)
-    return output, target
+    target = target / 2**16
+    input = input / 2**16
+    return input, target
+
+
+def tone_map_single(img):
+    mu = 5000  # amount of compression
+    img = torch.log(1 + mu * img) / np.log(1 + mu)
+    return img
 
 
 def tone_map(output, target):
     mu = 5000  # amount of compression
-    # mu = 1
-    lb = output.min() * mu
     output = torch.log(1 + mu * output) / np.log(1 + mu)
     target = torch.log(1 + mu * target) / np.log(1 + mu)
     return output, target
@@ -103,6 +109,8 @@ def train(net, device, tb, load_weights=False):
     assert (len(train_input_loader.dataset) == len(train_label_loader.dataset))
     num_mini_batches = len(train_input_loader)
 
+
+    #TODO: init?
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
 
     # training loop
@@ -116,7 +124,7 @@ def train(net, device, tb, load_weights=False):
             label_data, _ = train_label_iter.next()
             input_data = input_data.to(device)
             label_data = label_data.to(device)
-            input_data, label_data = down_sample(input_data, label_data, 4)
+            input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
             input_data, label_data = normalize(input_data, label_data)
             optimizer.zero_grad()
             outputs = net(input_data)
@@ -125,13 +133,56 @@ def train(net, device, tb, load_weights=False):
             optimizer.step()
             running_loss += loss.item()
         # print statistics
-        loss_cur_batch = running_loss / batch_size
+        loss_cur_batch = running_loss / batch_size  # FIXME
         print("loss = {:.3f}".format(loss_cur_batch))
         tb.add_scalar('training loss', loss_cur_batch, ep)
         running_loss = 0.0
 
     print("finished training")
+    tb.add_image("train_test_tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
+    tb.add_image("train_test_lin", outputs.detach().cpu().squeeze())
     torch.save(net.state_dict(), train_param_path)
+    return
+
+
+def test(net, tb):
+    global batch_size
+    batch_size = 1
+    print("testing on {} images".format(batch_size))
+    net.load_state_dict(torch.load("./model/unet/unet.pth"))
+
+    transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
+    test_input_loader = load_hdr_data(train_input_path, transform)
+    test_label_loader = load_hdr_data(train_label_path, transform)
+    assert (len(test_input_loader.dataset) == len(test_label_loader.dataset))
+    num_mini_batches = len(test_input_loader)
+
+    train_input_iter = iter(test_input_loader)
+    train_label_iter = iter(test_label_loader)
+
+    with torch.no_grad():
+        input_data, _ = train_input_iter.next()
+        label_data, _ = train_label_iter.next()
+        input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
+        input_data, label_data = normalize(input_data, label_data)
+        outputs = net(input_data)
+        loss = compute_l1_loss(outputs, label_data)
+
+    print("loss at test time = ", loss.item())
+    tb.add_image("test_tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
+    tb.add_image("test_linear/max", outputs.detach().cpu().squeeze() / outputs.max())
+
+    plt.imshow(outputs.squeeze().permute(1, 2, 0))
+    plt.title("test/output")
+    plt.show()
+
+    output_img = outputs.cpu().squeeze().permute(1, 2, 0).numpy()
+    output_img *= 2 ** 16
+    output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
+    output_img = output_img.astype(np.uint16)
+    output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
+    cv2.imwrite("./sample_output.png", output_img)
+
     return
 
 
@@ -142,18 +193,20 @@ def test_single(net, tb):
 
     net.load_state_dict(torch.load("./model/unet/unet.pth"))
 
-    test_input_path = "../data/CMOS/1/0_cmos.png"
-    test_label_path = "../data/ground_truth/1/0.hdr"
+    test_input_path = "../data/CMOS-10/1/0_cmos.png"
+    test_label_path = "../data/ground_truth-10/1/0.hdr"
+
+    # TODO same loading. same pipeline
 
     test_img = cv2.imread(test_input_path, -1).astype("float32")
     label_img = cv2.imread(test_label_path, -1).astype("float32")
     h, w, c = test_img.shape
     input_data = torch.from_numpy(test_img).view(c, h, w).unsqueeze(0)
     label_data = torch.from_numpy(label_img).view(c, h, w).unsqueeze(0)
-    input_data, label_data = down_sample(input_data, label_data, 4)
+    input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
     input_data, label_data = normalize(input_data, label_data)
 
-    net.eval()
+    net.eval()  # TODO: turns off batch-norm? turn off needed?
     with torch.no_grad():
         outputs = net(input_data)
         loss = compute_l1_loss(outputs, label_data)
@@ -161,8 +214,8 @@ def test_single(net, tb):
         _, c, h, w = outputs.shape
         output_img = outputs.squeeze().permute(1, 2, 0)
 
-        plt.imshow(output_img)
-        plt.show()
+        # plt.imshow(output_img)
+        # plt.show()
 
         output_img = output_img.numpy()
         output_img *= 2**16
@@ -173,8 +226,8 @@ def test_single(net, tb):
         cv2.imwrite("./sample_label.png", label_img)
 
         tb_id = "2"
-        tb.add_image("ground truth" + tb_id, label_data.squeeze())
-        tb.add_image("prediction" + tb_id, outputs.squeeze())
+        tb.add_image("ground truth" + tb_id, tone_map_single(label_data.squeeze()))
+        tb.add_image("prediction" + tb_id, tone_map_single(outputs.squeeze()))
 
 
 def tb_display_test(tb):
@@ -218,7 +271,6 @@ def tb_display_test(tb):
     tb.flush()
 
 
-
 def tensorboard_add_graph(tb, model):
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
     train_input_loader = load_hdr_data(train_input_path, transform)
@@ -232,13 +284,19 @@ def tensorboard_add_graph(tb, model):
 
 
 def main():
+    global batch_size
+    testing = True
     device = set_device()  # set device to CUDA if available
-    tb = SummaryWriter('./runs/unet_cont')
+    if testing:
+        device = "cpu"
+        batch_size = 1
+    tb = SummaryWriter('./runs/unet_test')
     print_params()
     net = U_Net(in_ch=3, out_ch=3)
-    # net.to(device)
+    net.to(device)
     # train(net, device, tb, load_weights=True)
-    test_single(net, tb)
+    # test_single(net, tb)
+    test(net, tb)
     # tb_display_test(tb)
     tb.close()
 
