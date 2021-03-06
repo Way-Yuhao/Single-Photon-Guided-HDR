@@ -10,6 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import time
 from tabulate import tabulate
+import warnings
 import matplotlib.pyplot as plt
 from Models import AttU_Net, U_Net
 from hdr_data_loader import customDataFolder
@@ -33,6 +34,7 @@ init_lr = 0.001  # initial learning rate
 batch_size = 8
 epoch = 500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
+
 
 def set_device():
     if torch.cuda.is_available():
@@ -96,13 +98,30 @@ def compute_l1_loss(output, target):
 
 
 def save_16bit_png(img, path):
-    output_img = img.detach().cpu().squeeze().permute(1, 2, 0).numpy()
+    img = img.detach().clone()
+    output_img = img.cpu().squeeze().permute(1, 2, 0).numpy()
     output_img *= 2 ** 16
     output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
     output_img = output_img.astype(np.uint16)
     output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
     cv2.imwrite(path, output_img)
     print("16-bit PNG save to ", path)
+    return
+
+
+def disp_plt(img, title="", normalize=False):
+    """
+    :param img: image to display
+    :param title: title of the figure
+    :param path: path to save the figure. If empty or None, this function will not save the figure
+    :param normalize: set to True if intend to normalize the image to [0, 1]
+    :return: None
+    """
+    img = img.detach().clone()
+    img = img / img.max() if normalize else img
+    plt.imshow(img.cpu().squeeze().permute(1, 2, 0))
+    plt.title(title)
+    plt.show()
     return
 
 
@@ -180,22 +199,8 @@ def test(net, tb):
     print("loss at test time = ", loss.item())
     tb.add_image("test_tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     tb.add_image("test_linear/max", outputs.detach().cpu().squeeze() / outputs.max())
-
-    plt.imshow(outputs.squeeze().permute(1, 2, 0))
-    plt.title("test/output")
-    plt.show()
-
+    disp_plt(img=outputs, title="test/new output", normalize=False)
     save_16bit_png(outputs, "./out_files/test_output_{}.png".format(version))
-
-
-
-    # output_img = outputs.cpu().squeeze().permute(1, 2, 0).numpy()
-    # output_img *= 2 ** 16
-    # output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
-    # output_img = output_img.astype(np.uint16)
-    # output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
-    # cv2.imwrite("./sample_output.png", output_img)
-
     return
 
 
@@ -304,10 +309,8 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
     #
-    # train(net, device, tb, load_weights=True, version)
-    # test_single(net, tb, version)
+    # train(net, device, tb, load_weights=True)
     test(net, tb)
-    # tb_display_test(tb)
     tb.close()
 
 
