@@ -126,25 +126,37 @@ def disp_plt(img, title="", normalize=False):
     return
 
 
+def flush_plt():
+    """
+    flushes the plot in SciView with a blank figure. This function is only useful in PyCharm environment
+    :return:
+    """
+    blank_img = np.ones((128, 256, 3))
+    plt.imshow(blank_img)
+    plt.title("blank image")
+    plt.show()
+    return
+
+
 def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, batch_size=None):
+    """
+    Issue: only works when mini batch size = 1
+    :param batch_idx:
+    :param eg_idx:
+    :param input_iter:
+    :param label_iter:
+    :param mode:
+    :param batch_size:
+    :return:
+    """
     input_data, label_data = None, None
     for _ in range(batch_idx+1):
         input_data, _ = input_iter.next()
         label_data, _ = label_iter.next()
-
-        print(input_data.shape)
-
-    input_data = input_data[eg_idx, :, :, :]
-
-    print(input_data.shape)
-
-    label_data = label_data[eg_idx, :, :, :]
     assert(input_data is not None and label_data is not None)
-
     disp_plt(input_data, "input: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), True)
     disp_plt(label_data, "label: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), False)
-    assert(0)
-
+    flush_plt()
     return input_data, label_data
 
 
@@ -172,16 +184,9 @@ def train(net, device, tb, load_weights=False):
         train_input_iter = iter(train_input_loader)
         train_label_iter = iter(train_label_loader)
 
-
-        # select_target_example(batch_idx=0, eg_idx=2, input_iter=train_input_iter, label_iter=train_label_iter, mode="train", batch_size=batch_size)
-
-
         for _ in tqdm(range(num_mini_batches)):
             input_data, _ = train_input_iter.next()
             label_data, _ = train_label_iter.next()
-
-
-
             input_data = input_data.to(device)
             label_data = label_data.to(device)
             input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
@@ -352,8 +357,8 @@ def main():
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    train(net, device, tb, load_weights=False)
-    # test(net, tb)
+    # train(net, device, tb, load_weights=False)
+    test(net, tb)
     tb.close()
 
 
