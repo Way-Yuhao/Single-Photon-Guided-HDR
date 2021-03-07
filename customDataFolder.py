@@ -2,10 +2,10 @@ from torchvision.datasets.vision import VisionDataset
 
 from PIL import Image
 import cv2
-
 import os
 import os.path
 import sys
+from natsort import natsorted
 
 
 def has_file_allowed_extension(filename, extensions):
@@ -46,7 +46,7 @@ def make_dataset(dir, class_to_idx, extensions=None, is_valid_file=None):
         if not os.path.isdir(d):
             continue
         for root, _, fnames in sorted(os.walk(d)):
-            for fname in sorted(fnames):
+            for fname in natsorted(fnames, number_type=int):
                 path = os.path.join(root, fname)
                 if is_valid_file(path):
                     item = (path, class_to_idx[target])
