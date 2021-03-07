@@ -214,7 +214,7 @@ def train(net, device, tb, load_weights=False):
     # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
     # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
-    torch.save(net.state_dict(), train_param_path)
+    torch.save(net.state_dict(), train_param_path.format(version))
     return
 
 
@@ -353,7 +353,7 @@ def tensorboard_add_graph(tb, model):
 
 def main():
     global batch_size, version
-    version = "v0.3-test"
+    version = "-v0.3"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
