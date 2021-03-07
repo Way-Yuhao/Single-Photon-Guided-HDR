@@ -13,7 +13,7 @@ from tabulate import tabulate
 import warnings
 import matplotlib.pyplot as plt
 from Models import AttU_Net, U_Net
-from hdr_data_loader import customDataFolder
+import customDataFolder
 
 # TODO: add tonemapping for tb vis
 # batch-norm
@@ -126,6 +126,28 @@ def disp_plt(img, title="", normalize=False):
     return
 
 
+def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, batch_size=None):
+    input_data, label_data = None, None
+    for _ in range(batch_idx+1):
+        input_data, _ = input_iter.next()
+        label_data, _ = label_iter.next()
+
+        print(input_data.shape)
+
+    input_data = input_data[eg_idx, :, :, :]
+
+    print(input_data.shape)
+
+    label_data = label_data[eg_idx, :, :, :]
+    assert(input_data is not None and label_data is not None)
+
+    disp_plt(input_data, "input: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), True)
+    disp_plt(label_data, "label: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), False)
+    assert(0)
+
+    return input_data, label_data
+
+
 def train(net, device, tb, load_weights=False):
     print_params()  # print hyper parameters
     print("training")
@@ -149,9 +171,17 @@ def train(net, device, tb, load_weights=False):
         print("Epoch ", ep)
         train_input_iter = iter(train_input_loader)
         train_label_iter = iter(train_label_loader)
+
+
+        # select_target_example(batch_idx=0, eg_idx=2, input_iter=train_input_iter, label_iter=train_label_iter, mode="train", batch_size=batch_size)
+
+
         for _ in tqdm(range(num_mini_batches)):
             input_data, _ = train_input_iter.next()
             label_data, _ = train_label_iter.next()
+
+
+
             input_data = input_data.to(device)
             label_data = label_data.to(device)
             input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
@@ -168,11 +198,12 @@ def train(net, device, tb, load_weights=False):
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
         if ep % 100 == 99:  # for every 100 epochs
-            save_16bit_png(outputs[1, :, :, :], path="./out_files/test_epoch_{}_version_{}.png".format(ep, version))
-            disp_plt(outputs[1, :, :, :], title="sample trining output in epoch {} // Model version {}".format(ep, version))
+            save_16bit_png(outputs[1, :, :, :], path="./out_files/test_epoch_{}_version_{}.png".format(ep+1, version))
+            disp_plt(outputs[1, :, :, :],
+                     title="sample trining output in epoch {} // Model version {}".format(ep+1, version))
         running_loss = 0.0
 
-    save_16bit_png(label_data[1, :, :, :], path="./out_files/sample_ground_truth.png".format(ep))
+    save_16bit_png(label_data[1, :, :, :], path="./out_files/sample_ground_truth.png")
 
     print("finished training")
     # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
@@ -184,6 +215,8 @@ def train(net, device, tb, load_weights=False):
 
 def test(net, tb):
     global batch_size
+    target_batch_idx = 1
+    target_eg_idx = 0
     batch_size = 1
     print("testing on {} images".format(batch_size))
     net.load_state_dict(torch.load("./model/unet/unet.pth"))
@@ -192,14 +225,14 @@ def test(net, tb):
     test_input_loader = load_hdr_data(train_input_path, transform)
     test_label_loader = load_hdr_data(train_label_path, transform)
     assert (len(test_input_loader.dataset) == len(test_label_loader.dataset))
-    num_mini_batches = len(test_input_loader)
 
-    train_input_iter = iter(test_input_loader)
-    train_label_iter = iter(test_label_loader)
+    test_input_iter = iter(test_input_loader)
+    test_label_iter = iter(test_label_loader)
 
     with torch.no_grad():
-        input_data, _ = train_input_iter.next()
-        label_data, _ = train_label_iter.next()
+        input_data, label_data = \
+            select_target_example(target_batch_idx, target_eg_idx,
+                                  test_input_iter, test_label_iter, mode="test", batch_size=batch_size)
         input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
         input_data, label_data = normalize(input_data, label_data)
         outputs = net(input_data)
@@ -210,7 +243,9 @@ def test(net, tb):
     tb.add_image("test_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     tb.add_image("test_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
     disp_plt(img=outputs, title="test/new output", normalize=False)
-    save_16bit_png(outputs, "./out_files/test_output_{}.png".format(version))
+    save_16bit_png(outputs, "./out_files/test_output_{}_{}.png".format(version, target_batch_idx))
+    save_16bit_png(input_data, "./out_files/test_input_{}_{}.png".format(version, target_batch_idx))
+    save_16bit_png(label_data, "./out_files/test_ground_truth_{}_{}.png".format(version, target_batch_idx))
     return
 
 
