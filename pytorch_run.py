@@ -20,12 +20,13 @@ import customDataFolder
 # net.train, net.eval
 
 """Global Parameters"""
-train_param_path = "./model/unet/unet.pth"
+version = None  # version of the model, defined in main()
+train_param_path = "./model/unet/unet-{}.pth"
 train_input_path = "../data/CMOS"
 train_label_path = "../data/ground_truth"
 down_sp_msg_printed = False
 down_sp_rate = 16  # down sample rate
-version = None
+
 
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
@@ -156,7 +157,6 @@ def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, 
     assert(input_data is not None and label_data is not None)
     disp_plt(input_data, "input: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), True)
     disp_plt(label_data, "label: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), False)
-    flush_plt()
     return input_data, label_data
 
 
@@ -353,14 +353,14 @@ def tensorboard_add_graph(tb, model):
 
 def main():
     global batch_size, version
-    version = "v0.2"
+    version = "v0.3-test"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    # train(net, device, tb, load_weights=False)
-    test(net, tb)
+    train(net, device, tb, load_weights=False)
+    # test(net, tb)
     tb.close()
-
+    flush_plt()
 
 if __name__ == "__main__":
     main()
