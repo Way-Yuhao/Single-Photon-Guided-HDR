@@ -214,6 +214,7 @@ def train(net, device, tb, load_weights=False):
     # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
     # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
+
     torch.save(net.state_dict(), train_param_path.format(version))
     return
 
