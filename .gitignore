@@ -1,7 +1,7 @@
-/exposure_bracketing/long+mid/
-/exposure_bracketing/long+mid0_fusion.hdr
-/exposure_bracketing/long+short/
-/input/
-/HDR-ExpandNet/
-/playground/
-/Unet-Segmentation-Pytorch-Nest-of-Unets-master/
+/diagrams/*
+/exposure_bracketing/*
+/fusion_results/*
+/input/*
+/luminance_fusion/*
+/playground/*
+/simulated_outputs/*
