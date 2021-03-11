@@ -7,7 +7,7 @@ import os
 from matplotlib import pyplot as plt
 from simulators.spad_simulator import SPADSimulator
 from simulators.cmos_simulator import CMOSSimulator
-from simulators.idea_simulator import IdealSimulator
+from simulators.ideal_simulator import IdealSimulator
 import progressbar
 
 """global parameters"""
@@ -85,7 +85,7 @@ def init_simulators():
     if CMOS_on:
         CMOS_Sim = CMOSSimulator(q=CMOS_qe, fwc=CMOS_fwc, downsp_rate=CMOS_down_sample_rate, path=out_path)
     if ideal_on:
-        ideal_Sim = IdealSimulator(downsp_rate=CMOS_down_sample_rate, path=out_path)
+        ideal_Sim = IdealSimulator(downsp_rate=ideal_down_sample_rate, path=out_path)
 
 
 def run_sumulations(flux, id):
