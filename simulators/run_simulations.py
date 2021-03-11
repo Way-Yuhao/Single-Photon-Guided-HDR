@@ -7,12 +7,13 @@ import os
 from matplotlib import pyplot as plt
 from simulators.spad_simulator import SPADSimulator
 from simulators.cmos_simulator import CMOSSimulator
+from simulators.idea_simulator import IdealSimulator
 import progressbar
 
 """global parameters"""
 fpath = "../input/53_HDRI/"
-out_path = "../playground/sim/"
-plt_path = "../playground/plt/"
+out_path = "../simulated_outputs/test/sim/"
+plt_path = "../simulated_outputs/test/plt/"
 
 """SPAD parameters"""
 SPAD_Sim = None
@@ -31,12 +32,19 @@ CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
 CMOS_T = .01                # exposure time in seconds
 CMOS_gain = 100             # uniform gain applied to the analog signal
+CMOS_down_sample_rate = 1   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
-    'r' : .40,
-    'g' : .75,
-    'b' : .77
+    'r': .40,
+    'g': .75,
+    'b': .77
 }
 
+"""ideal sensor parameters"""
+ideal_Sim = None
+ideal_on = True
+idea_T = CMOS_T
+ideal_gain = CMOS_gain
+ideal_down_sample_rate = CMOS_down_sample_rate
 
 
 def resave_gt(fname, id):
@@ -70,21 +78,27 @@ def scale_flux(flux):
 
 
 def init_simulators():
-    global SPAD_Sim, CMOS_Sim
+    global SPAD_Sim, CMOS_Sim, ideal_Sim
     if SPAD_on:
-        SPAD_Sim = SPADSimulator(q=SPAD_qe, tau=SPAD_tau, downsp_rate=SPAD_down_sample_rate, isMono=SPAD_mono, path=out_path)
+        SPAD_Sim = \
+            SPADSimulator(q=SPAD_qe, tau=SPAD_tau, downsp_rate=SPAD_down_sample_rate, isMono=SPAD_mono, path=out_path)
     if CMOS_on:
-        CMOS_Sim = CMOSSimulator(q=CMOS_qe, fwc=CMOS_fwc, downsp_rate=1, path=out_path)
+        CMOS_Sim = CMOSSimulator(q=CMOS_qe, fwc=CMOS_fwc, downsp_rate=CMOS_down_sample_rate, path=out_path)
+    if ideal_on:
+        ideal_Sim = IdealSimulator(downsp_rate=CMOS_down_sample_rate, path=out_path)
 
 
 def run_sumulations(flux, id):
-    global SPAD_Sim, CMOS_Sim
+    global SPAD_Sim, CMOS_Sim, ideal_Sim
     if SPAD_on:
         SPAD_Sim.expose(flux, SPAD_T)
         SPAD_Sim.process(SPAD_T, SPAD_gain, id)
     if CMOS_on:
         CMOS_Sim.expose(flux, CMOS_T)
         CMOS_Sim.process(CMOS_gain, id)
+    if ideal_on:
+        ideal_Sim.expose(flux, idea_T)
+        ideal_Sim.process(ideal_gain, id)
 
 
 def save_hist(flux, id):

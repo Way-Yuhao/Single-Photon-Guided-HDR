@@ -1,10 +1,8 @@
 import cv2
 import numpy as np
 
-CMOS_qe = {                 # quantum efficiency index for each color channel
-    'r' : .40,
-    'g' : .75,
-    'b' : .77
-}
+cmos = cv2.imread("../simulated_outputs/test/sim/0_cmos.png", -1)
+spad = cv2.imread("../simulated_outputs/test/sim/0_gt.hdr", -1)
+ideal = cv2.imread("../simulated_outputs/test/sim/0_spad.hdr", -1)
 
-print(CMOS_qe['r'])
+print("hi")
