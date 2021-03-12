@@ -21,11 +21,10 @@ import customDataFolder
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
-train_param_path = "./model/unet/unet-{}.pth"
+train_param_path = "./model/unet/unet{}.pth"
 train_input_path = "../data/CMOS"
 train_label_path = "../data/ground_truth"
-down_sp_msg_printed = False
-down_sp_rate = 16  # down sample rate
+down_sp_rate = 1  # down sample rate
 
 
 """Hyper Parameters"""
@@ -65,15 +64,15 @@ def print_params():
 
 
 def down_sample(input, target, down_sp_rate):
-    global down_sp_msg_printed
+    if down_sp_rate is 1:
+        return input, target
     input = input[:, :, ::down_sp_rate, ::down_sp_rate]
     target = target[:, :, ::down_sp_rate, ::down_sp_rate]
-
     return input, target
 
 
 def normalize(input, target):
-    target = target * 100000
+    target = target
     target = target / 2**16
     input = input / 2**16
     return input, target
@@ -155,8 +154,8 @@ def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, 
         input_data, _ = input_iter.next()
         label_data, _ = label_iter.next()
     assert(input_data is not None and label_data is not None)
-    disp_plt(input_data, "input: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), True)
-    disp_plt(label_data, "label: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), False)
+    # disp_plt(input_data, "input: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), True)
+    # disp_plt(label_data, "label: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), False)
     return input_data, label_data
 
 
@@ -225,7 +224,7 @@ def test(net, tb):
     target_eg_idx = 0
     batch_size = 1
     print("testing on {} images".format(batch_size))
-    net.load_state_dict(torch.load("./model/unet/unet.pth"))
+    net.load_state_dict(torch.load(train_param_path.format(version)))
 
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
     test_input_loader = load_hdr_data(train_input_path, transform)
@@ -235,6 +234,7 @@ def test(net, tb):
     test_input_iter = iter(test_input_loader)
     test_label_iter = iter(test_label_loader)
 
+    net.eval()
     with torch.no_grad():
         input_data, label_data = \
             select_target_example(target_batch_idx, target_eg_idx,
@@ -248,7 +248,12 @@ def test(net, tb):
     tb.add_image("test_output/linear", outputs.detach().cpu().squeeze())
     tb.add_image("test_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     tb.add_image("test_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
-    disp_plt(img=outputs, title="test/new output", normalize=False)
+
+    disp_plt(img=input_data, title="model version {}/ input".format(version), normalize=False)
+    disp_plt(img=outputs, title="model version {}/ test output".format(version), normalize=False)
+    disp_plt(img=label_data, title="model version {}/ ground truth".format(version), normalize=False)
+
+
     save_16bit_png(outputs, "./out_files/test_output_{}_{}.png".format(version, target_batch_idx))
     save_16bit_png(input_data, "./out_files/test_input_{}_{}.png".format(version, target_batch_idx))
     save_16bit_png(label_data, "./out_files/test_ground_truth_{}_{}.png".format(version, target_batch_idx))
@@ -358,8 +363,8 @@ def main():
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    train(net, device, tb, load_weights=False)
-    # test(net, tb)
+    # train(net, device, tb, load_weights=False)
+    test(net, tb)
     tb.close()
     flush_plt()
 
