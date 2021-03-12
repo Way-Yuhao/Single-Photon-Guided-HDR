@@ -199,10 +199,10 @@ def cross_validation(net, device, tb, load_weights=False):
     split = int(np.floor(validation_split * dataset_size))
     train_input_indices, val_input_indices = indices[split:], indices[:split]
     train_label_indices, val_label_indices = indices[split:], indices[:split]
-    train_input_sampler = SubsetRandomSampler(train_input_indices)
-    valid_input_sampler = SubsetRandomSampler(val_input_indices)
-    train_label_sampler = SubsetRandomSampler(train_label_indices)
-    valid_label_sampler = SubsetRandomSampler(val_label_indices)
+    train_input_sampler = SequentialSampler(train_input_indices)
+    valid_input_sampler = SequentialSampler(val_input_indices)
+    train_label_sampler = SequentialSampler(train_label_indices)
+    valid_label_sampler = SequentialSampler(val_label_indices)
 
     train_input_loader = load_hdr_data(path=train_input_path, transform=transform, sampler=train_input_sampler)
     train_label_loader = load_hdr_data(path=train_label_path, transform=transform, sampler=train_label_sampler)
@@ -364,9 +364,9 @@ def main():
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    train(net, device, tb, load_weights=False)
+    # train(net, device, tb, load_weights=False)
     # test(net, tb)
-    # cross_validation(net, device, tb)
+    cross_validation(net, device, tb)
     tb.close()
     # flush_plt()
 
