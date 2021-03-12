@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from simulators.radiance_writer import radiance_writer, radiance_writer_grayscale
 
 
 def disp_plt(img, title="", normalize=False):
@@ -18,8 +19,17 @@ def disp_plt(img, title="", normalize=False):
     return
 
 
-# cmos = cv2.imread("../simulated_outputs/test/sim/0_cmos.png", -1)
-ideal = cv2.imread("../simulated_outputs/test/sim/0_gt.hdr", -1)
-# spad = cv2.imread("../simulated_outputs/test/sim/0_spad.hdr", -1)
+cmos = cv2.imread("../simulated_outputs/CMOS/0_cmos.png", -1)
+ideal = cv2.imread("../simulated_outputs/ideal/0_gt.hdr", -1)
+spad = cv2.imread("../simulated_outputs/SPAD/0_spad.hdr", -1)
+
+# cmos_mono = cmos[:, :, 0]
+# cv2.imwrite("../simulated_outputs/mono_test.png", cmos_mono)
+
+ideal = cv2.cvtColor(ideal, cv2.COLOR_BGR2RGB)
+radiance_writer(ideal, "../simulated_outputs/ideal_rad.hdr")
+
+spad_mono = spad[:, :, 0]
+radiance_writer_grayscale(spad_mono, "../simulated_outputs/spad_mono.hdr")
 
 print("hi")

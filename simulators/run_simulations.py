@@ -17,7 +17,7 @@ plt_path = "../simulated_outputs/plt/"
 
 """SPAD parameters"""
 SPAD_Sim = None
-SPAD_on = False             # toggle on to enable SPAD simulator
+SPAD_on = True             # toggle on to enable SPAD simulator
 SPAD_mono = True          # if the sensor is monochromatic
 SPAD_T = .01               # exposure time in seconds
 SPAD_gain = 10             # uniform gain applied to the analog signal
