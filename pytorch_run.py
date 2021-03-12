@@ -160,6 +160,7 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
     val_label_iter = iter(label_loader)
     num_mini_batches = len(input_loader)
     net.eval()
+    outputs = None
     with torch.no_grad():
         running_loss = 0.0
         for _ in range(num_mini_batches):
@@ -177,7 +178,9 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
         print("val loss = {:.3f}".format(val_loss))
         tb.add_scalar('loss/dev', val_loss, epoch_idx)
     net.train()
-    return val_loss
+
+    sample_output = outputs[0, :, :, :]
+    return val_loss, sample_output
 
 
 def cross_validation(net, device, tb, load_weights=False):
@@ -236,19 +239,22 @@ def cross_validation(net, device, tb, load_weights=False):
             optimizer.step()
             running_loss += loss.item()
         # record loss values after each epoch
-        cur_val_loss = cross_validation_test(net, device, valid_input_loader, valid_label_loader, ep, tb)
+        cur_val_loss, sample_val_output = cross_validation_test(net, device, valid_input_loader, valid_label_loader, ep, tb)
         cur_train_loss = running_loss / num_mini_batches
         tb.add_scalar('loss/train', cur_train_loss, ep)
         print("train loss = {:.3f} | valid loss = {:.3f}".format(cur_train_loss, cur_val_loss))
         running_loss = 0.0
 
-        if ep % 10 == 9:  # for every 10 epochs
-            save_16bit_png(outputs[1, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
-            disp_plt(outputs[1, :, :, :],
-                     title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
+        # if ep % 10 == 9:  # for every 10 epochs
+        if True:
+            sample_train_output = outputs[0, :, :, :]
+            save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
+            disp_plt(sample_train_output, title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
+
+            disp_plt(sample_val_output, title="sample validation output in epoch {} // Model version {}".format(ep + 1, version))
 
     print("finished training")
-    save_16bit_png(label_data[1, :, :, :], path="./out_files/sample_ground_truth.png")
+    save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
     # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
     # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
@@ -360,7 +366,7 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.4.4-test"
+    version = "-v0.4.5"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
