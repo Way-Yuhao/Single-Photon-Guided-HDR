@@ -11,13 +11,13 @@ from simulators.ideal_simulator import IdealSimulator
 import progressbar
 
 """global parameters"""
-fpath = "../input/53_HDRI/"
-out_path = "../simulated_outputs/test/sim/"
-plt_path = "../simulated_outputs/test/plt/"
+fpath = "../input/1k/"
+out_path = "../simulated_outputs/"
+plt_path = "../simulated_outputs/plt/"
 
 """SPAD parameters"""
 SPAD_Sim = None
-SPAD_on = True             # toggle on to enable SPAD simulator
+SPAD_on = False             # toggle on to enable SPAD simulator
 SPAD_mono = True          # if the sensor is monochromatic
 SPAD_T = .01               # exposure time in seconds
 SPAD_gain = 10             # uniform gain applied to the analog signal
@@ -32,7 +32,7 @@ CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
 CMOS_T = .01                # exposure time in seconds
 CMOS_gain = 100             # uniform gain applied to the analog signal
-CMOS_down_sample_rate = 1   # spatial down sampling rate of the sensor
+CMOS_down_sample_rate = 4   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
     'r': .40,
     'g': .75,
@@ -81,11 +81,11 @@ def init_simulators():
     global SPAD_Sim, CMOS_Sim, ideal_Sim
     if SPAD_on:
         SPAD_Sim = \
-            SPADSimulator(q=SPAD_qe, tau=SPAD_tau, downsp_rate=SPAD_down_sample_rate, isMono=SPAD_mono, path=out_path)
+            SPADSimulator(q=SPAD_qe, tau=SPAD_tau, downsp_rate=SPAD_down_sample_rate, isMono=SPAD_mono, path=out_path+"SPAD/")
     if CMOS_on:
-        CMOS_Sim = CMOSSimulator(q=CMOS_qe, fwc=CMOS_fwc, downsp_rate=CMOS_down_sample_rate, path=out_path)
+        CMOS_Sim = CMOSSimulator(q=CMOS_qe, fwc=CMOS_fwc, downsp_rate=CMOS_down_sample_rate, path=out_path+"CMOS/")
     if ideal_on:
-        ideal_Sim = IdealSimulator(downsp_rate=ideal_down_sample_rate, path=out_path)
+        ideal_Sim = IdealSimulator(downsp_rate=ideal_down_sample_rate, path=out_path+"ideal/")
 
 
 def run_sumulations(flux, id):

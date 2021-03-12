@@ -30,7 +30,9 @@ class SPADSimulator(object):
         img = flux.copy()
         if self.isMono:  # monochrome
             b, g, r = cv2.split(flux)
-            img = 179 * (0.2126 * r + 0.7152 * g + 0.0722 * b)  # convert to monochrome
+            # img = 179 * (0.2126 * r + 0.7152 * g + 0.0722 * b)  # convert to monochrome
+            img = 0.2126 * r + 0.7152 * g + 0.0722 * b  # convert to monochrome
+            # TODO: this is inaccurate
         # adding photon noise
         for p in np.nditer(img, op_flags=['readwrite']):
             phi = p  # photon flux

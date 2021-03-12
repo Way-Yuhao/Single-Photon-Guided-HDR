@@ -34,6 +34,8 @@ class CMOSSimulator(object):
             :param flux: photon flux at every pixel locations
             :return: simulated CMOS image
             """
+        if self.downsp_rate != 1:
+            flux = self.down_sample_flux(flux)
         img = flux.copy()
         img = img * self.q
         img = img * T
