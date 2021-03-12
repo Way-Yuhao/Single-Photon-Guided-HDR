@@ -155,6 +155,31 @@ def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, 
     return input_data, label_data
 
 
+def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb):
+    val_input_iter = iter(input_loader)
+    val_label_iter = iter(label_loader)
+    num_mini_batches = len(input_loader)
+    net.eval()
+    with torch.no_grad():
+        running_loss = 0.0
+        for _ in range(num_mini_batches):
+            input_data, _ = val_input_iter.next()
+            label_data, _ = val_label_iter.next()
+            input_data = input_data.to(device)
+            label_data = label_data.to(device)
+            input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
+            input_data, label_data = normalize(input_data, label_data)
+            outputs = net(input_data)
+            loss = compute_l1_loss(outputs, label_data)
+            running_loss += loss.item()
+        # record loss values
+        val_loss = running_loss / num_mini_batches
+        print("val loss = {:.3f}".format(val_loss))
+        tb.add_scalar('loss/dev', val_loss, epoch_idx)
+    net.train()
+    return val_loss
+
+
 def cross_validation(net, device, tb, load_weights=False):
     print_params()  # print hyper parameters
     net.to(device)
@@ -211,15 +236,16 @@ def cross_validation(net, device, tb, load_weights=False):
             optimizer.step()
             running_loss += loss.item()
         # record loss values after each epoch
-        loss_cur_batch = running_loss / num_mini_batches
-        print("loss = {:.3f}".format(loss_cur_batch))
-        tb.add_scalar('loss/train', loss_cur_batch, ep)
+        cur_val_loss = cross_validation_test(net, device, valid_input_loader, valid_label_loader, ep, tb)
+        cur_train_loss = running_loss / num_mini_batches
+        tb.add_scalar('loss/train', cur_train_loss, ep)
+        print("train loss = {:.3f} | valid loss = {:.3f}".format(cur_train_loss, cur_val_loss))
+        running_loss = 0.0
 
         if ep % 10 == 9:  # for every 10 epochs
             save_16bit_png(outputs[1, :, :, :], path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
             disp_plt(outputs[1, :, :, :],
                      title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
-        running_loss = 0.0
 
     print("finished training")
     save_16bit_png(label_data[1, :, :, :], path="./out_files/sample_ground_truth.png")
@@ -333,7 +359,7 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.4.2"
+    version = "-v0.4.4"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
