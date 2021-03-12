@@ -26,7 +26,7 @@ down_sp_rate = 1  # down sample rate
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 50
+epoch = 500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -245,13 +245,12 @@ def cross_validation(net, device, tb, load_weights=False):
         print("train loss = {:.3f} | valid loss = {:.3f}".format(cur_train_loss, cur_val_loss))
         running_loss = 0.0
 
-        # if ep % 10 == 9:  # for every 10 epochs
-        if True:
+        if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
 
-            disp_plt(sample_val_output, title="sample validation output in epoch {} // Model version {}".format(ep + 1, version))
+            save_16bit_png(sample_val_output, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
 
     print("finished training")
     save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
@@ -366,7 +365,7 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.4.5"
+    version = "-v0.4.6"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
