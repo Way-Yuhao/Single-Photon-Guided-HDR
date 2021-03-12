@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+from torch.utils.data.sampler import SubsetRandomSampler
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
@@ -15,22 +16,17 @@ import matplotlib.pyplot as plt
 from Models import AttU_Net, U_Net
 import customDataFolder
 
-# TODO: add tonemapping for tb vis
-# batch-norm
-# net.train, net.eval
-
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 train_param_path = "./model/unet/unet{}.pth"
-train_input_path = "../data/CMOS"
-train_label_path = "../data/ground_truth"
+train_input_path = "../data/hdri_437_256x128/CMOS"
+train_label_path = "../data/hdri_437_256x128/ideal"
 down_sp_rate = 1  # down sample rate
-
 
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 5000
+epoch = 50
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -44,10 +40,10 @@ def set_device():
     return device
 
 
-def load_hdr_data(path, transform):
+def load_hdr_data(path, transform, sampler=None):
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(path, transform=transform),
-        batch_size=batch_size, num_workers=4, shuffle=False)
+        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
 
 
@@ -73,8 +69,8 @@ def down_sample(input, target, down_sp_rate):
 
 def normalize(input, target):
     target = target
-    target = target / 2**16
-    input = input / 2**16
+    target = target / 2 ** 16
+    input = input / 2 ** 16
     return input, target
 
 
@@ -150,13 +146,83 @@ def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, 
     :return:
     """
     input_data, label_data = None, None
-    for _ in range(batch_idx+1):
+    for _ in range(batch_idx + 1):
         input_data, _ = input_iter.next()
         label_data, _ = label_iter.next()
-    assert(input_data is not None and label_data is not None)
+    assert (input_data is not None and label_data is not None)
     # disp_plt(input_data, "input: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), True)
     # disp_plt(label_data, "label: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), False)
     return input_data, label_data
+
+
+def cross_validation(net, device, tb):
+    print_params()  # print hyper parameters
+    validation_split = .2
+    transform = transforms.Compose([transforms.ToTensor()])
+    dataset_input = customDataFolder.ImageFolder(train_input_path, transform=transform)
+    dataset_label = customDataFolder.ImageFolder(train_label_path, transform=transform)
+    assert (len(dataset_input) == len(dataset_label))
+    dataset_size = len(dataset_input)
+    indices = list(range(dataset_size))
+    split = int(np.floor(validation_split * dataset_size))
+    train_input_indices, val_input_indices = indices[split:], indices[:split]
+    train_label_indices, val_label_indices = indices[split:], indices[:split]
+    train_input_sampler = SubsetRandomSampler(train_input_indices)
+    valid_input_sampler = SubsetRandomSampler(val_input_indices)
+    train_label_sampler = SubsetRandomSampler(train_label_indices)
+    valid_label_sampler = SubsetRandomSampler(val_label_indices)
+
+    train_input_loader = load_hdr_data(path=train_input_path, transform=transform, sampler=train_input_sampler)
+    train_label_loader = load_hdr_data(path=train_label_path, transform=transform, sampler=train_label_sampler)
+    valid_input_loader = load_hdr_data(path=train_input_path, transform=transform, sampler=valid_input_sampler)
+    valid_label_loader = load_hdr_data(path=train_label_path, transform=transform, sampler=valid_label_sampler)
+    print("Using cross-validation with a {:.0%}/{:.0%} train/dev split:".format(1 - validation_split, validation_split))
+    print("size of train set = {} mini-batches | size of dev set = {} mini-batches".format(len(train_input_loader),
+                                                                                           len(valid_input_loader)))
+    num_mini_batches = len(train_input_loader)
+    optimizer = optim.Adam(net.parameters(), lr=init_lr)
+
+    # training loop
+    running_loss = 0.0
+    outputs = None
+    for ep in range(epoch):
+        print("Epoch ", ep)
+        train_input_iter = iter(train_input_loader)
+        train_label_iter = iter(train_label_loader)
+
+        for _ in tqdm(range(num_mini_batches)):
+            input_data, _ = train_input_iter.next()
+            label_data, _ = train_label_iter.next()
+            input_data = input_data.to(device)
+            label_data = label_data.to(device)
+            input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
+            input_data, label_data = normalize(input_data, label_data)
+            optimizer.zero_grad()
+            outputs = net(input_data)
+            loss = compute_l1_loss(outputs, label_data)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        # print statistics
+        loss_cur_batch = running_loss / num_mini_batches  # FIXME
+        print("loss = {:.3f}".format(loss_cur_batch))
+        tb.add_scalar('training loss', loss_cur_batch, ep)
+
+        if ep % 100 == 99:  # for every 100 epochs
+            save_16bit_png(outputs[1, :, :, :], path="./out_files/test_epoch_{}_version_{}.png".format(ep + 1, version))
+            disp_plt(outputs[1, :, :, :],
+                     title="sample trining output in epoch {} // Model version {}".format(ep + 1, version))
+        running_loss = 0.0
+
+    save_16bit_png(label_data[1, :, :, :], path="./out_files/sample_ground_truth.png")
+
+    print("finished training")
+    # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
+    # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
+    # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
+
+    torch.save(net.state_dict(), train_param_path.format(version))
+    return
 
 
 def train(net, device, tb, load_weights=False):
@@ -202,9 +268,9 @@ def train(net, device, tb, load_weights=False):
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
         if ep % 100 == 99:  # for every 100 epochs
-            save_16bit_png(outputs[1, :, :, :], path="./out_files/test_epoch_{}_version_{}.png".format(ep+1, version))
+            save_16bit_png(outputs[1, :, :, :], path="./out_files/test_epoch_{}_version_{}.png".format(ep + 1, version))
             disp_plt(outputs[1, :, :, :],
-                     title="sample trining output in epoch {} // Model version {}".format(ep+1, version))
+                     title="sample trining output in epoch {} // Model version {}".format(ep + 1, version))
         running_loss = 0.0
 
     save_16bit_png(label_data[1, :, :, :], path="./out_files/sample_ground_truth.png")
@@ -253,7 +319,6 @@ def test(net, tb):
     disp_plt(img=outputs, title="model version {}/ test output".format(version), normalize=False)
     disp_plt(img=label_data, title="model version {}/ ground truth".format(version), normalize=False)
 
-
     save_16bit_png(outputs, "./out_files/test_output_{}_{}.png".format(version, target_batch_idx))
     save_16bit_png(input_data, "./out_files/test_input_{}_{}.png".format(version, target_batch_idx))
     save_16bit_png(label_data, "./out_files/test_ground_truth_{}_{}.png".format(version, target_batch_idx))
@@ -262,14 +327,16 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.3"
+    version = "-v0.4.1"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
     # train(net, device, tb, load_weights=False)
-    test(net, tb)
+    # test(net, tb)
+    cross_validation(net, device)
     tb.close()
-    flush_plt()
+    # flush_plt()
+
 
 if __name__ == "__main__":
     main()
