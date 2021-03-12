@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.data.sampler import SubsetRandomSampler, SequentialSampler
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
@@ -243,7 +243,7 @@ def cross_validation(net, device, tb, load_weights=False):
         running_loss = 0.0
 
         if ep % 10 == 9:  # for every 10 epochs
-            save_16bit_png(outputs[1, :, :, :], path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
+            save_16bit_png(outputs[1, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(outputs[1, :, :, :],
                      title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
 
@@ -299,13 +299,14 @@ def train(net, device, tb, load_weights=False):
         print("loss = {:.3f}".format(loss_cur_batch))
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
-        if ep % 100 == 99:  # for every 100 epochs
-            save_16bit_png(outputs[1, :, :, :], path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
-            disp_plt(outputs[1, :, :, :],
+        # if ep % 100 == 99:  # for every 100 epochs
+        if True:
+            save_16bit_png(outputs[0, :, :, :], path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
+            disp_plt(outputs[0, :, :, :],
                      title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
         running_loss = 0.0
 
-    save_16bit_png(label_data[1, :, :, :], path="./out_files/sample_ground_truth.png")
+    save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
 
     print("finished training")
     # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
@@ -359,13 +360,13 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.4.4"
+    version = "-v0.4.4-test"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    # train(net, device, tb, load_weights=False)
+    train(net, device, tb, load_weights=False)
     # test(net, tb)
-    cross_validation(net, device, tb)
+    # cross_validation(net, device, tb)
     tb.close()
     # flush_plt()
 
