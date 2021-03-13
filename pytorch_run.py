@@ -366,7 +366,7 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.4.6-test"
+    version = "-v0.4.7"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
