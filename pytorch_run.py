@@ -15,6 +15,7 @@ import warnings
 import matplotlib.pyplot as plt
 from Models import AttU_Net, U_Net
 import customDataFolder
+from sequence_subset_sampler import SubsetSequenceSampler
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
@@ -202,10 +203,10 @@ def cross_validation(net, device, tb, load_weights=False):
     split = int(np.floor(validation_split * dataset_size))
     train_input_indices, val_input_indices = indices[split:], indices[:split]
     train_label_indices, val_label_indices = indices[split:], indices[:split]
-    train_input_sampler = SubsetRandomSampler(train_input_indices)
-    valid_input_sampler = SubsetRandomSampler(val_input_indices)
-    train_label_sampler = SubsetRandomSampler(train_label_indices)
-    valid_label_sampler = SubsetRandomSampler(val_label_indices)
+    train_input_sampler = SubsetSequenceSampler(train_input_indices)
+    valid_input_sampler = SubsetSequenceSampler(val_input_indices)
+    train_label_sampler = SubsetSequenceSampler(train_label_indices)
+    valid_label_sampler = SubsetSequenceSampler(val_label_indices)
 
     train_input_loader = load_hdr_data(path=train_input_path, transform=transform, sampler=train_input_sampler)
     train_label_loader = load_hdr_data(path=train_label_path, transform=transform, sampler=train_label_sampler)
@@ -245,7 +246,8 @@ def cross_validation(net, device, tb, load_weights=False):
         print("train loss = {:.3f} | valid loss = {:.3f}".format(cur_train_loss, cur_val_loss))
         running_loss = 0.0
 
-        if ep % 10 == 9:  # for every 10 epochs
+        # if ep % 10 == 9:  # for every 10 epochs
+        if True:
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
@@ -365,7 +367,7 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.4.6"
+    version = "-v0.4.6-test"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
