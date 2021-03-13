@@ -32,6 +32,10 @@ MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
 def set_device():
+    """
+    Sets device to CUDA if available
+    :return: CUDA if available
+    """
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
         print("CUDA is available. Training on GPU")
@@ -41,14 +45,24 @@ def set_device():
     return device
 
 
-def load_hdr_data(path, transform, sampler=None):
+def load_hdr_data(path, transform):
+    """
+    custom dataloader that loads .hdr and .png data.
+    :param path: path to files for the dataset
+    :param transform: requires transform to only consist of ToTensor
+    :return: dataloader object
+    """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(path, transform=transform),
-        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=4, shuffle=False)
     return data_loader
 
 
 def print_params():
+    """
+    prints a list of parameters to stdout
+    :return: None
+    """
     print("######## Hyper Parameters ########")
     print("batch size = ", batch_size)
     print("epoch = ", epoch)
@@ -61,6 +75,13 @@ def print_params():
 
 
 def down_sample(input, target, down_sp_rate):
+    """
+    down-samples input and label at a given down sampling rate
+    :param input: input tensor of shape (m, c, h, w)
+    :param target: label tensor of shape (m, c, h, w)
+    :param down_sp_rate: a positive integer specifying the down sampling rate
+    :return: down-sampled input, label pair
+    """
     if down_sp_rate is 1:
         return input, target
     input = input[:, :, ::down_sp_rate, ::down_sp_rate]
@@ -69,6 +90,12 @@ def down_sample(input, target, down_sp_rate):
 
 
 def normalize(input, target):
+    """
+    normalizes input to [0, 1] and target to [0, >1]
+    :param input: input tensor. Expects original input image files to be 16-bit PNG (uint16)
+    :param target: label tensor. Expects original label image files to be 32-bit .hdr (float32)
+    :return: normalized input and label
+    """
     target = target
     target = target / 2 ** 16
     input = input / 2 ** 16
@@ -76,12 +103,27 @@ def normalize(input, target):
 
 
 def tone_map_single(img):
+    """
+    Tone-mapping algorithm proposed by Nima Khademi Kalantari and Ravi Ramamoorthi.
+    Deep high dynamic range imaging of dynamic scenes.
+    ACM Transactions on Graphics (Proc. of ACM SIGGRAPH), 36(4):144–1, 2017.
+    :param img: image tensor
+    :return: tone-mapped img
+    """
     mu = 5000  # amount of compression
     img = torch.log(1 + mu * img) / np.log(1 + mu)
     return img
 
 
 def tone_map(output, target):
+    """
+    Tone-mapping algorithm proposed by Nima Khademi Kalantari and Ravi Ramamoorthi.
+    Deep high dynamic range imaging of dynamic scenes.
+    ACM Transactions on Graphics (Proc. of ACM SIGGRAPH), 36(4):144–1, 2017.
+    :param output: output tensor of the neural network
+    :param target: label tensor
+    :return: tone-mapped output and target tensors
+    """
     mu = 5000  # amount of compression
     output = torch.log(1 + mu * output) / np.log(1 + mu)
     target = torch.log(1 + mu * target) / np.log(1 + mu)
@@ -89,6 +131,12 @@ def tone_map(output, target):
 
 
 def compute_l1_loss(output, target):
+    """
+    computes the L1 loss between output and target after tone-mapping
+    :param output: output tensor of the neural network
+    :param target: label tensor
+    :return: L1 loss
+    """
     criterion = nn.L1Loss()
     output, target = tone_map(output, target)
     l1_loss = criterion(output, target)
@@ -96,6 +144,12 @@ def compute_l1_loss(output, target):
 
 
 def save_16bit_png(img, path):
+    """
+    saves 16-bit PNG image via cv2
+    :param img: image tensor of shape (1, c, h, w)
+    :param path: path to save the image to
+    :return: None
+    """
     img = img.detach().clone()
     output_img = img.cpu().squeeze().permute(1, 2, 0).numpy()
     output_img *= 2 ** 16
@@ -126,7 +180,7 @@ def disp_plt(img, title="", normalize=False):
 def flush_plt():
     """
     flushes the plot in SciView with a blank figure. This function is only useful in PyCharm environment
-    :return:
+    :return: None
     """
     blank_img = np.ones((128, 256, 3))
     plt.imshow(blank_img)
@@ -157,6 +211,16 @@ def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, 
 
 
 def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb):
+    """
+    performs validat
+    :param net:
+    :param device:
+    :param input_loader:
+    :param label_loader:
+    :param epoch_idx:
+    :param tb:
+    :return:
+    """
     val_input_iter = iter(input_loader)
     val_label_iter = iter(label_loader)
     num_mini_batches = len(input_loader)
