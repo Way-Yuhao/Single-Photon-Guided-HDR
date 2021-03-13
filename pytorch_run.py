@@ -246,8 +246,7 @@ def cross_validation(net, device, tb, load_weights=False):
         print("train loss = {:.3f} | valid loss = {:.3f}".format(cur_train_loss, cur_val_loss))
         running_loss = 0.0
 
-        # if ep % 10 == 9:  # for every 10 epochs
-        if True:
+        if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
