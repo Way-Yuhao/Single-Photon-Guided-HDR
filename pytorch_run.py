@@ -45,17 +45,30 @@ def set_device():
     return device
 
 
-def load_hdr_data(path, transform, sampler):
+def load_hdr_data(path, transform, sampler=None):
     """
     custom dataloader that loads .hdr and .png data.
     :param path: path to files for the dataset
     :param transform: requires transform to only consist of ToTensor
+    :param sampler:
     :return: dataloader object
     """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(path, transform=transform),
         batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
+
+
+def load_network_weights(net, path):
+    """
+    loads pre-trained weights from path and prints message
+    :param net:
+    :param path:
+    :return:
+    """
+    print("loading pre-trained weights from {}".format(path))
+    net.load_state_dict(torch.load(path))
+    return
 
 
 def print_params():
@@ -264,14 +277,12 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
     return val_loss, sample_output
 
 
-def cross_validation(net, device, tb, load_weights=False):
+def cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=None):
     print_params()  # print hyper parameters
     net.to(device)
     net.train()
     if load_weights:
-        net.load_state_dict(torch.load(train_param_path))
-        print("loading pre-trained weights")
-
+        load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
     validation_split = .2
     transform = transforms.Compose([transforms.ToTensor()])
@@ -320,7 +331,8 @@ def cross_validation(net, device, tb, load_weights=False):
             optimizer.step()
             running_loss += loss.item()
         # record loss values after each epoch
-        cur_val_loss, sample_val_output = cross_validation_test(net, device, valid_input_loader, valid_label_loader, ep, tb)
+        cur_val_loss, sample_val_output = cross_validation_test(net, device, valid_input_loader, valid_label_loader, ep,
+                                                                tb)
         cur_train_loss = running_loss / num_mini_batches
         tb.add_scalar('loss/train', cur_train_loss, ep)
         print("train loss = {:.3f} | valid loss = {:.3f}".format(cur_train_loss, cur_val_loss))
@@ -329,7 +341,8 @@ def cross_validation(net, device, tb, load_weights=False):
         if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
-            disp_plt(sample_train_output, title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
+            disp_plt(sample_train_output,
+                     title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
             save_16bit_png(sample_val_output, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
             save_weights(net, ep)
 
@@ -339,14 +352,13 @@ def cross_validation(net, device, tb, load_weights=False):
     return
 
 
-def train(net, device, tb, load_weights=False):
+def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     print_params()  # print hyper parameters
     print("training")
     net.to(device)
     net.train()
     if load_weights:
-        net.load_state_dict(torch.load(train_param_path))
-        print("loading pre-trained weights")
+        load_network_weights(net, pre_trained_params_path)
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
     train_input_loader = load_hdr_data(train_input_path, transform)
     train_label_loader = load_hdr_data(train_label_path, transform)
@@ -382,7 +394,8 @@ def train(net, device, tb, load_weights=False):
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
         if ep % 100 == 99:  # for every 100 epochs
-            save_16bit_png(outputs[0, :, :, :], path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
+            save_16bit_png(outputs[0, :, :, :],
+                           path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
             disp_plt(outputs[0, :, :, :],
                      title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
         running_loss = 0.0
@@ -399,13 +412,13 @@ def train(net, device, tb, load_weights=False):
     return
 
 
-def test(net, tb):
+def test(net, tb, pre_trained_params_path):
     global batch_size
     target_batch_idx = 1
     target_eg_idx = 0
     batch_size = 1
     print("testing on {} images".format(batch_size))
-    net.load_state_dict(torch.load(train_param_path.format(version)))
+    load_network_weights(net, pre_trained_params_path)
 
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
     test_input_loader = load_hdr_data(train_input_path, transform)
@@ -442,13 +455,14 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.4.7-test"
+    version = "-v0.4.7"
+    param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    # train(net, device, tb, load_weights=False)
-    # test(net, tb)
-    cross_validation(net, device, tb)
+    # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    test(net, tb, pre_trained_params_path=param_to_load)
+    # cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     # flush_plt()
 
