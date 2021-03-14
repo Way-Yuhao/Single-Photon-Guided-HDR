@@ -19,7 +19,7 @@ from sequence_subset_sampler import SubsetSequenceSampler
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
-train_param_path = "./model/unet/unet{}.pth"
+train_param_path = "./model/unet/"
 train_input_path = "../data/hdri_437_256x128/CMOS"
 train_label_path = "../data/hdri_437_256x128/ideal"
 down_sp_rate = 1  # down sample rate
@@ -45,7 +45,7 @@ def set_device():
     return device
 
 
-def load_hdr_data(path, transform):
+def load_hdr_data(path, transform, sampler):
     """
     custom dataloader that loads .hdr and .png data.
     :param path: path to files for the dataset
@@ -54,7 +54,7 @@ def load_hdr_data(path, transform):
     """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(path, transform=transform),
-        batch_size=batch_size, num_workers=4, shuffle=False)
+        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
 
 
@@ -210,6 +210,22 @@ def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, 
     return input_data, label_data
 
 
+def save_weights(net, ep=None):
+    """
+    saves weights of the neural network
+    :param ep: number of epochs trained
+    :param net: torch network object
+    :return: None
+    """
+    if epoch is None:
+        filename = train_param_path + "unet_{}.pth".format(version)
+    else:
+        filename = train_param_path + "unet_{}_epoch_{}.pth".format(version, ep)
+    torch.save(net.state_dict(), filename)
+    print("network weights saved to ", filename)
+    return
+
+
 def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb):
     """
     performs validat
@@ -219,7 +235,7 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
     :param label_loader:
     :param epoch_idx:
     :param tb:
-    :return:
+    :return: None
     """
     val_input_iter = iter(input_loader)
     val_label_iter = iter(label_loader)
@@ -314,16 +330,12 @@ def cross_validation(net, device, tb, load_weights=False):
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
-
             save_16bit_png(sample_val_output, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
+            save_weights(net, ep)
 
     print("finished training")
     save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
-    # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
-    # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
-    # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
-
-    torch.save(net.state_dict(), train_param_path.format(version))
+    save_weights(net, ep="{}_FINAL".format(epoch))
     return
 
 
@@ -369,12 +381,12 @@ def train(net, device, tb, load_weights=False):
         print("loss = {:.3f}".format(loss_cur_batch))
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
-        # if ep % 100 == 99:  # for every 100 epochs
-        if True:
+        if ep % 100 == 99:  # for every 100 epochs
             save_16bit_png(outputs[0, :, :, :], path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
             disp_plt(outputs[0, :, :, :],
                      title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
         running_loss = 0.0
+        save_weights(net, ep)
 
     save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
 
@@ -383,7 +395,7 @@ def train(net, device, tb, load_weights=False):
     # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
 
-    torch.save(net.state_dict(), train_param_path.format(version))
+    save_weights(net, ep="{}_FINAL".format(epoch))
     return
 
 
@@ -430,7 +442,7 @@ def test(net, tb):
 
 def main():
     global batch_size, version
-    version = "-v0.4.7"
+    version = "-v0.4.7-test"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
