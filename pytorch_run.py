@@ -436,7 +436,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
 
 def test(net, tb, pre_trained_params_path):
     global batch_size
-    target_batch_idx = 435
+    target_batch_idx = 9
     target_eg_idx = 0
     batch_size = 1
     print("testing on {} images".format(batch_size))
