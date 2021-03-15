@@ -10,13 +10,14 @@ import torchvision.transforms as transforms
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import time
-from tabulate import tabulate
 import warnings
+from tabulate import tabulate
 import matplotlib.pyplot as plt
 from Models import AttU_Net, U_Net
 import customDataFolder
 from sequence_subset_sampler import SubsetSequenceSampler
 from radiance_writer import radiance_writer
+
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
@@ -430,7 +431,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
 
 def test(net, tb, pre_trained_params_path):
     global batch_size
-    target_batch_idx = 231
+    target_batch_idx = 12
     target_eg_idx = 0
     batch_size = 1
     print("testing on {} images".format(batch_size))
@@ -455,17 +456,13 @@ def test(net, tb, pre_trained_params_path):
         loss = compute_l1_loss(outputs, label_data)
 
     print("loss at test time = ", loss.item())
-    tb.add_image("test_output/linear", outputs.detach().cpu().squeeze())
-    tb.add_image("test_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
-    tb.add_image("test_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
+    # tb.add_image("test_output/linear", outputs.detach().cpu().squeeze())
+    # tb.add_image("test_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
+    # tb.add_image("test_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
 
-    disp_plt(img=input_data, title="model version {}/ input".format(version), normalize=False)
-    disp_plt(img=outputs, title="model version {}/ test output".format(version), normalize=False)
-    disp_plt(img=label_data, title="model version {}/ ground truth".format(version), normalize=False)
-
-    save_16bit_png(outputs, "./out_files/test_output_{}_{}.png".format(version, target_batch_idx))
-    save_16bit_png(input_data, "./out_files/test_input_{}_{}.png".format(version, target_batch_idx))
-    save_16bit_png(label_data, "./out_files/test_ground_truth_{}_{}.png".format(version, target_batch_idx))
+    disp_plt(img=input_data, title="model version {}/ input".format(version), normalize=True)
+    disp_plt(img=outputs, title="model version {}/ test output".format(version), normalize=True)
+    disp_plt(img=label_data, title="model version {}/ ground truth".format(version), normalize=True)
 
     save_hdr(outputs, "./out_files/test_output_{}_{}.hdr".format(version, target_batch_idx))
     save_hdr(input_data, "./out_files/test_input_{}_{}.hdr".format(version, target_batch_idx))
@@ -475,6 +472,7 @@ def test(net, tb, pre_trained_params_path):
 
 def main():
     global batch_size, version
+    print("======================================================")
     version = "-v0.4.7"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
@@ -484,7 +482,7 @@ def main():
     test(net, tb, pre_trained_params_path=param_to_load)
     # cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
-    # flush_plt()
+    flush_plt()
 
 
 if __name__ == "__main__":
