@@ -174,6 +174,16 @@ def save_16bit_png(img, path):
     return
 
 
+def save_hdr(img, path):
+    """
+    saves 32-bit .hdr image
+    :param img: image tensor of shape (1, c, h, w)
+    :param path: path to save the image to
+    :return: None
+    """
+
+
+
 def disp_plt(img, title="", normalize=False):
     """
     :param img: image to display
