@@ -190,13 +190,11 @@ def save_hdr(img, path):
     return
 
 
-def disp_plt(img, title="", normalize=False, tone_map=False):
+def disp_plt(img, title="", tone_map=False):
     """
-    :param gamma:
     :param img: image to display
     :param title: title of the figure
-    :param path: path to save the figure. If empty or None, this function will not save the figure
-    :param normalize: set to True if intend to normalize the image to [0, 1]
+    :param tone_map: applies tonemapping via cv2 if set to True
     :return: None
     """
     img = img.detach().clone()
@@ -208,7 +206,7 @@ def disp_plt(img, title="", normalize=False, tone_map=False):
         tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
         img = tonemapDrago.process(img)
     plt.imshow(img)
-    full_title = "{} / {} / tonemapping={} / normalization={}".format(version, title, tone_map, normalize)
+    full_title = "{} / {} / tonemapping={}".format(version, title, tone_map)
     plt.title(full_title)
     plt.show()
     return
@@ -467,9 +465,9 @@ def test(net, tb, pre_trained_params_path):
     # tb.add_image("test_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     # tb.add_image("test_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
 
-    disp_plt(img=input_data, title="input", tone_map=False, normalize=True)
-    disp_plt(img=outputs, title="output", tone_map=False, normalize=True)
-    disp_plt(img=label_data, title="target", tone_map=False, normalize=True)
+    disp_plt(img=input_data, title="input", tone_map=True)
+    disp_plt(img=outputs, title="output / loss = {:.3f}".format(loss.item()), tone_map=True)
+    disp_plt(img=label_data, title="target", tone_map=True)
 
     save_hdr(outputs, "./out_files/test_output_{}_{}.hdr".format(version, target_batch_idx))
     save_hdr(input_data, "./out_files/test_input_{}_{}.hdr".format(version, target_batch_idx))
