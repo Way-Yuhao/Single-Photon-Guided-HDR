@@ -18,7 +18,6 @@ import customDataFolder
 from sequence_subset_sampler import SubsetSequenceSampler
 from radiance_writer import radiance_writer
 
-
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 train_param_path = "./model/unet/"
@@ -191,8 +190,9 @@ def save_hdr(img, path):
     return
 
 
-def disp_plt(img, title="", normalize=False):
+def disp_plt(img, title="", normalize=False, tone_map=False):
     """
+    :param gamma:
     :param img: image to display
     :param title: title of the figure
     :param path: path to save the figure. If empty or None, this function will not save the figure
@@ -200,9 +200,16 @@ def disp_plt(img, title="", normalize=False):
     :return: None
     """
     img = img.detach().clone()
-    img = img / img.max() if normalize else img
-    plt.imshow(img.cpu().squeeze().permute(1, 2, 0))
-    plt.title(title)
+    img = img.cpu().squeeze().permute(1, 2, 0)
+    img = np.float32(img)
+    if normalize:
+        img = img / img.max()
+    if tone_map:
+        tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
+        img = tonemapDrago.process(img)
+    plt.imshow(img)
+    full_title = "{} / {} / tonemapping={} / normalization={}".format(version, title, tone_map, normalize)
+    plt.title(full_title)
     plt.show()
     return
 
@@ -431,7 +438,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
 
 def test(net, tb, pre_trained_params_path):
     global batch_size
-    target_batch_idx = 12
+    target_batch_idx = 435
     target_eg_idx = 0
     batch_size = 1
     print("testing on {} images".format(batch_size))
@@ -460,9 +467,9 @@ def test(net, tb, pre_trained_params_path):
     # tb.add_image("test_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     # tb.add_image("test_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
 
-    disp_plt(img=input_data, title="model version {}/ input".format(version), normalize=True)
-    disp_plt(img=outputs, title="model version {}/ test output".format(version), normalize=True)
-    disp_plt(img=label_data, title="model version {}/ ground truth".format(version), normalize=True)
+    disp_plt(img=input_data, title="input", tone_map=False, normalize=True)
+    disp_plt(img=outputs, title="output", tone_map=False, normalize=True)
+    disp_plt(img=label_data, title="target", tone_map=False, normalize=True)
 
     save_hdr(outputs, "./out_files/test_output_{}_{}.hdr".format(version, target_batch_idx))
     save_hdr(input_data, "./out_files/test_input_{}_{}.hdr".format(version, target_batch_idx))
