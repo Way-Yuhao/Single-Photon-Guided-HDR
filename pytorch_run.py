@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from Models import AttU_Net, U_Net
 import customDataFolder
 from sequence_subset_sampler import SubsetSequenceSampler
+from radiance_writer import radiance_writer
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
@@ -168,7 +169,7 @@ def save_16bit_png(img, path):
     output_img *= 2 ** 16
     output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
     output_img = output_img.astype(np.uint16)
-    output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
+    # output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
     cv2.imwrite(path, output_img)
     print("16-bit PNG save to ", path)
     return
@@ -181,7 +182,12 @@ def save_hdr(img, path):
     :param path: path to save the image to
     :return: None
     """
-
+    img = img.detach().clone()
+    output_img = img.cpu().squeeze().permute(1, 2, 0).numpy()
+    # output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
+    radiance_writer(output_img, path)
+    print("32 bit .hdr file save to ", path)
+    return
 
 
 def disp_plt(img, title="", normalize=False):
@@ -424,7 +430,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
 
 def test(net, tb, pre_trained_params_path):
     global batch_size
-    target_batch_idx = 1
+    target_batch_idx = 231
     target_eg_idx = 0
     batch_size = 1
     print("testing on {} images".format(batch_size))
@@ -460,6 +466,10 @@ def test(net, tb, pre_trained_params_path):
     save_16bit_png(outputs, "./out_files/test_output_{}_{}.png".format(version, target_batch_idx))
     save_16bit_png(input_data, "./out_files/test_input_{}_{}.png".format(version, target_batch_idx))
     save_16bit_png(label_data, "./out_files/test_ground_truth_{}_{}.png".format(version, target_batch_idx))
+
+    save_hdr(outputs, "./out_files/test_output_{}_{}.hdr".format(version, target_batch_idx))
+    save_hdr(input_data, "./out_files/test_input_{}_{}.hdr".format(version, target_batch_idx))
+    save_hdr(label_data, "./out_files/test_ground_truth_{}_{}.hdr".format(version, target_batch_idx))
     return
 
 
