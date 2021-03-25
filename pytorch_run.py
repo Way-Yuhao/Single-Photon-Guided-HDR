@@ -21,8 +21,8 @@ from radiance_writer import radiance_writer
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 train_param_path = "./model/unet/"
-train_input_path = "../data/hdri_437_256x128/CMOS"
-train_label_path = "../data/hdri_437_256x128/ideal"
+train_input_path = "../data/hdri_437_256x128/CMOS/"
+train_label_path = "../data/hdri_437_256x128/ideal/"
 down_sp_rate = 1  # down sample rate
 
 """Hyper Parameters"""
@@ -405,6 +405,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
             label_data = label_data.to(device)
             input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
             input_data, label_data = normalize(input_data, label_data)
+
             optimizer.zero_grad()
             outputs = net(input_data)
             loss = compute_l1_loss(outputs, label_data)
@@ -429,6 +430,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
     # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
+
     save_weights(net, ep="{}_FINAL".format(epoch))
     return
 
