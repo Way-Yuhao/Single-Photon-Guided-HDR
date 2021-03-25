@@ -298,7 +298,9 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
     sample_output = outputs[0, :, :, :]
     return val_loss, sample_output
 
-
+# TODO: rename
+# TODO: track model with lowest dev loss -> final model
+# TODO: save model for every
 def cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=None):
     print_params()  # print hyper parameters
     net.to(device)
@@ -478,7 +480,7 @@ def test(net, tb, pre_trained_params_path):
 def main():
     global batch_size, version
     print("======================================================")
-    version = "-v0.4.7"
+    version = "-v0.5.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
