@@ -56,7 +56,7 @@ def load_hdr_data(input_path, target_path, transform, sampler=None):
     """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path, target_path, input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=0, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
 
 

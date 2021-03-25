@@ -8,6 +8,8 @@ import os.path
 import sys
 from natsort import natsorted
 
+IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
+
 
 def has_file_allowed_extension(filename, extensions):
     """Checks if a file is an allowed extension.
@@ -54,6 +56,92 @@ def make_dataset(dir, class_to_idx, extensions=None, is_valid_file=None):
                     images.append(item)
 
     return images
+
+
+def pil_loader(path):
+    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+    with open(path, 'rb') as f:
+        img = Image.open(f)
+        return img.convert('RGB')
+
+
+def accimage_loader(path):
+    import accimage
+    try:
+        return accimage.Image(path)
+    except IOError:
+        # Potentially a decoding problem, fall back to PIL.Image
+        return pil_loader(path)
+
+
+def cv_loader(path):
+    img = cv2.imread(path, -1)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = img.astype("float32")
+
+    return img
+
+
+def default_loader(path):
+    return cv_loader(path)
+
+
+class ImageFolder(VisionDataset):
+    """A generic data loader where the images are arranged in this way: ::
+
+        root/dog/xxx.png
+        root/dog/xxy.png
+        root/dog/xxz.png
+
+        root/cat/123.png
+        root/cat/nsdf3.png
+        root/cat/asd932_.png
+
+    Args:
+        root (string): Root directory path.
+        input_transform (callable, optional): A function/transform that  takes in an PIL image
+            and returns a transformed version. E.g, ``transforms.RandomCrop``
+        target_transform (callable, optional): A function/transform that takes in the
+            target and transforms it.
+        loader (callable, optional): A function to load an image given its path.
+        is_valid_file (callable, optional): A function that takes path of an Image file
+            and check if the file is a valid_file (used to check of corrupt files)
+
+     Attributes:
+        classes (list): List of the class names.
+        class_to_idx (dict): Dict with items (class_name, class_index).
+        imgs (list): List of (image path, class_index) tuples
+    """
+
+    def __init__(self, input_dir, target_dir, input_transform=None, target_transform=None):
+        self.inputs = natsorted(os.listdir(input_dir), number_type=int)
+        self.targets = natsorted(os.listdir(target_dir), number_type=int)
+        self.input_dir = input_dir
+        self.target_dir = target_dir
+        self.input_transform = input_transform
+        self.target_transform = target_transform
+        self.check_files()
+        return
+
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self, item):
+        input_sample = cv_loader(self.input_dir + self.inputs[item])
+        target_sample = cv_loader(self.target_dir + self.targets[item])
+        if self.input_transform is not None:
+            input_sample = self.input_transform(input_sample)
+        if self.target_transform is not None:
+            target_sample = self.target_transform(target_sample)
+        return input_sample, target_sample
+
+    def check_files(self):
+        # check file extensions
+        if not self.inputs[0].lower().endswith("png"):
+            raise FileExistsError("ERROR: expected input images of type .png")
+        if not self.targets[0].lower().endswith("hdr"):
+            raise FileExistsError("ERROR: expected target images of type .hdr")
+        return
 
 
 # class DatasetFolder(VisionDataset):
@@ -148,88 +236,3 @@ def make_dataset(dir, class_to_idx, extensions=None, is_valid_file=None):
 #     def __len__(self):
 #         return len(self.samples)
 
-
-IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
-
-
-def pil_loader(path):
-    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
-
-
-def accimage_loader(path):
-    import accimage
-    try:
-        return accimage.Image(path)
-    except IOError:
-        # Potentially a decoding problem, fall back to PIL.Image
-        return pil_loader(path)
-
-
-def cv_loader(path):
-    img = cv2.imread(path, -1)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = img.astype("float32")
-
-    return img
-
-
-def default_loader(path):
-    return cv_loader(path)
-
-
-class ImageFolder(VisionDataset):
-    """A generic data loader where the images are arranged in this way: ::
-
-        root/dog/xxx.png
-        root/dog/xxy.png
-        root/dog/xxz.png
-
-        root/cat/123.png
-        root/cat/nsdf3.png
-        root/cat/asd932_.png
-
-    Args:
-        root (string): Root directory path.
-        input_transform (callable, optional): A function/transform that  takes in an PIL image
-            and returns a transformed version. E.g, ``transforms.RandomCrop``
-        target_transform (callable, optional): A function/transform that takes in the
-            target and transforms it.
-        loader (callable, optional): A function to load an image given its path.
-        is_valid_file (callable, optional): A function that takes path of an Image file
-            and check if the file is a valid_file (used to check of corrupt files)
-
-     Attributes:
-        classes (list): List of the class names.
-        class_to_idx (dict): Dict with items (class_name, class_index).
-        imgs (list): List of (image path, class_index) tuples
-    """
-
-    def __init__(self, input_dir, target_dir, input_transform=None, target_transform=None):
-        # super(ImageFolder, self).__init__(root, loader, IMG_EXTENSIONS if is_valid_file is None else None,
-        #                                   transform=transform,
-        #                                   target_transform=target_transform,
-        #                                   is_valid_file=is_valid_file)
-
-
-
-        self.inputs = natsorted(os.listdir(input_dir), number_type=int)
-        self.targets = natsorted(os.listdir(target_dir), number_type=int)
-        self.input_dir = input_dir
-        self.target_dir = target_dir
-        self.input_transform = input_transform
-        self.target_transform = target_transform
-
-    def __len__(self):
-        return len(self.inputs)
-
-    def __getitem__(self, item):
-        input_sample = cv_loader(self.input_dir + self.inputs[item])
-        target_sample = cv_loader(self.target_dir + self.targets[item])
-        if self.input_transform is not None:
-            input_sample = self.input_transform(input_sample)
-        if self.target_transform is not None:
-            target_sample = self.target_transform(target_sample)
-        return input_sample, target_sample
