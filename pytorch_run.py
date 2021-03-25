@@ -56,7 +56,7 @@ def load_hdr_data(input_path, target_path, transform, sampler=None):
     """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path, target_path, input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=0, shuffle=False, sampler=sampler)
     return data_loader
 
 
@@ -367,8 +367,7 @@ def cross_validation(net, device, tb, load_weights=False, pre_trained_params_pat
         if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
-            disp_plt(sample_train_output,
-                     title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
+            disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1))
             save_16bit_png(sample_val_output, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
             save_weights(net, ep)
 
@@ -419,10 +418,8 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
 
         # if ep % 100 == 99:  # for every 100 epochs
         if True:
-            save_16bit_png(outputs[0, :, :, :],
-                           path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
-            disp_plt(outputs[0, :, :, :],
-                     title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
+            save_16bit_png(outputs[0, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
+            disp_plt(outputs[0, :, :, :], title="sample training output in epoch {}".format(ep + 1))
         running_loss = 0.0
         # save_weights(net, ep)
 
@@ -432,7 +429,6 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
     # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
     # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
-
     save_weights(net, ep="{}_FINAL".format(epoch))
     return
 
