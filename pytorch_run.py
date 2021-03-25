@@ -46,7 +46,7 @@ def set_device():
     return device
 
 
-def load_hdr_data(path, transform, sampler=None):
+def load_hdr_data(input_path, target_path, transform, sampler=None):
     """
     custom dataloader that loads .hdr and .png data.
     :param path: path to files for the dataset
@@ -55,7 +55,7 @@ def load_hdr_data(path, transform, sampler=None):
     :return: dataloader object
     """
     data_loader = torch.utils.data.DataLoader(
-        customDataFolder.ImageFolder(path, transform=transform),
+        customDataFolder.ImageFolder(input_path, target_path, input_transform=transform, target_transform=transform),
         batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
 
@@ -301,6 +301,8 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
 # TODO: rename
 # TODO: track model with lowest dev loss -> final model
 # TODO: save model for every
+
+
 def cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=None):
     print_params()  # print hyper parameters
     net.to(device)
@@ -310,8 +312,8 @@ def cross_validation(net, device, tb, load_weights=False, pre_trained_params_pat
     # splitting train/dev set
     validation_split = .2
     transform = transforms.Compose([transforms.ToTensor()])
-    dataset_input = customDataFolder.ImageFolder(train_input_path, transform=transform)
-    dataset_label = customDataFolder.ImageFolder(train_label_path, transform=transform)
+    dataset_input = customDataFolder.ImageFolder(train_input_path, input_transform=transform)
+    dataset_label = customDataFolder.ImageFolder(train_label_path, input_transform=transform)
     assert (len(dataset_input) == len(dataset_label))
     dataset_size = len(dataset_input)
     indices = list(range(dataset_size))
@@ -384,10 +386,10 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     if load_weights:
         load_network_weights(net, pre_trained_params_path)
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
-    train_input_loader = load_hdr_data(train_input_path, transform)
-    train_label_loader = load_hdr_data(train_label_path, transform)
-    assert (len(train_input_loader.dataset) == len(train_label_loader.dataset))
-    num_mini_batches = len(train_input_loader)  # number of mini-batches per epoch
+    train_loader = load_hdr_data(train_input_path, train_label_path, transform)
+    # train_label_loader = load_hdr_data(train_label_path, transform)
+    # assert (len(train_input_loader.dataset) == len(train_label_loader.dataset))
+    num_mini_batches = len(train_loader)  # number of mini-batches per epoch
 
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
 
@@ -396,12 +398,10 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     outputs = None
     for ep in range(epoch):
         print("Epoch ", ep)
-        train_input_iter = iter(train_input_loader)
-        train_label_iter = iter(train_label_loader)
+        train_iter = iter(train_loader)
 
         for _ in tqdm(range(num_mini_batches)):
-            input_data, _ = train_input_iter.next()
-            label_data, _ = train_label_iter.next()
+            input_data, label_data = train_iter.next()
             input_data = input_data.to(device)
             label_data = label_data.to(device)
             input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
@@ -417,13 +417,14 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
         print("loss = {:.3f}".format(loss_cur_batch))
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
-        if ep % 100 == 99:  # for every 100 epochs
+        # if ep % 100 == 99:  # for every 100 epochs
+        if True:
             save_16bit_png(outputs[0, :, :, :],
                            path="./out_files/train_epoch_{}_version_{}.png".format(ep + 1, version))
             disp_plt(outputs[0, :, :, :],
                      title="sample training output in epoch {} // Model version {}".format(ep + 1, version))
         running_loss = 0.0
-        save_weights(net, ep)
+        # save_weights(net, ep)
 
     save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
 
@@ -485,8 +486,8 @@ def main():
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    test(net, tb, pre_trained_params_path=param_to_load)
+    train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # test(net, tb, pre_trained_params_path=param_to_load)
     # cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()

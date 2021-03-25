@@ -1,6 +1,7 @@
 from torchvision.datasets.vision import VisionDataset
 
 from PIL import Image
+import torch
 import cv2
 import os
 import os.path
@@ -137,8 +138,8 @@ class DatasetFolder(VisionDataset):
         """
         path, target = self.samples[index]
         sample = self.loader(path)
-        if self.transform is not None:
-            sample = self.transform(sample)
+        if self.input_transform is not None:
+            sample = self.input_transform(sample)
         if self.target_transform is not None:
             target = self.target_transform(target)
 
@@ -192,7 +193,7 @@ class ImageFolder(DatasetFolder):
 
     Args:
         root (string): Root directory path.
-        transform (callable, optional): A function/transform that  takes in an PIL image
+        input_transform (callable, optional): A function/transform that  takes in an PIL image
             and returns a transformed version. E.g, ``transforms.RandomCrop``
         target_transform (callable, optional): A function/transform that takes in the
             target and transforms it.
@@ -206,10 +207,30 @@ class ImageFolder(DatasetFolder):
         imgs (list): List of (image path, class_index) tuples
     """
 
-    def __init__(self, root, transform=None, target_transform=None,
-                 loader=cv_loader(), is_valid_file=None):
-        super(ImageFolder, self).__init__(root, loader, IMG_EXTENSIONS if is_valid_file is None else None,
-                                          transform=transform,
-                                          target_transform=target_transform,
-                                          is_valid_file=is_valid_file)
-        self.imgs = self.samples
+    def __init__(self, input_dir, target_dir, input_transform=None, target_transform=None):
+        # super(ImageFolder, self).__init__(root, loader, IMG_EXTENSIONS if is_valid_file is None else None,
+        #                                   transform=transform,
+        #                                   target_transform=target_transform,
+        #                                   is_valid_file=is_valid_file)
+
+        input_dir += "/1/"
+        target_dir += "/1/"
+
+        self.inputs = natsorted(os.listdir(input_dir), number_type=int)
+        self.targets = natsorted(os.listdir(target_dir), number_type=int)
+        self.input_dir = input_dir
+        self.target_dir = target_dir
+        self.input_transform = input_transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self, item):
+        input_sample = cv_loader(self.input_dir + self.inputs[item])
+        target_sample = cv_loader(self.target_dir + self.targets[item])
+        if self.input_transform is not None:
+            input_sample = self.input_transform(input_sample)
+        if self.target_transform is not None:
+            target_sample = self.target_transform(target_sample)
+        return input_sample, target_sample
