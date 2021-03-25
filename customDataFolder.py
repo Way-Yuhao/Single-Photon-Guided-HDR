@@ -8,70 +8,73 @@ import os.path
 import sys
 from natsort import natsorted
 
-IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
-
-
-def has_file_allowed_extension(filename, extensions):
-    """Checks if a file is an allowed extension.
-
-    Args:
-        filename (string): path to a file
-        extensions (tuple of strings): extensions to consider (lowercase)
-
-    Returns:
-        bool: True if the filename ends with one of given extensions
-    """
-    return filename.lower().endswith(extensions) | filename.lower().endswith("hdr")
-
-
-def is_image_file(filename):
-    """Checks if a file is an allowed image extension.
-
-    Args:
-        filename (string): path to a file
-
-    Returns:
-        bool: True if the filename ends with a known image extension
-    """
-    return has_file_allowed_extension(filename, IMG_EXTENSIONS)
-
-
-def make_dataset(dir, class_to_idx, extensions=None, is_valid_file=None):
-    images = []
-    dir = os.path.expanduser(dir)
-    if not ((extensions is None) ^ (is_valid_file is None)):
-        raise ValueError("Both extensions and is_valid_file cannot be None or not None at the same time")
-    if extensions is not None:
-        def is_valid_file(x):
-            return has_file_allowed_extension(x, extensions)
-    for target in sorted(class_to_idx.keys()):
-        d = os.path.join(dir, target)
-        if not os.path.isdir(d):
-            continue
-        for root, _, fnames in sorted(os.walk(d)):
-            for fname in natsorted(fnames, number_type=int):
-                path = os.path.join(root, fname)
-                if is_valid_file(path):
-                    item = (path, class_to_idx[target])
-                    images.append(item)
-
-    return images
-
-
-def pil_loader(path):
-    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
-
-
-def accimage_loader(path):
-    import accimage
-    try:
-        return accimage.Image(path)
-    except IOError:
-        # Potentially a decoding problem, fall back to PIL.Image
-        return pil_loader(path)
+# IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
+#
+#
+# def has_file_allowed_extension(filename, extensions):
+#     """Checks if a file is an allowed extension.
+#
+#     Args:
+#         filename (string): path to a file
+#         extensions (tuple of strings): extensions to consider (lowercase)
+#
+#     Returns:
+#         bool: True if the filename ends with one of given extensions
+#     """
+#     return filename.lower().endswith(extensions) | filename.lower().endswith("hdr")
+#
+#
+# def is_image_file(filename):
+#     """Checks if a file is an allowed image extension.
+#
+#     Args:
+#         filename (string): path to a file
+#
+#     Returns:
+#         bool: True if the filename ends with a known image extension
+#     """
+#     return has_file_allowed_extension(filename, IMG_EXTENSIONS)
+#
+#
+# def make_dataset(dir, class_to_idx, extensions=None, is_valid_file=None):
+#     images = []
+#     dir = os.path.expanduser(dir)
+#     if not ((extensions is None) ^ (is_valid_file is None)):
+#         raise ValueError("Both extensions and is_valid_file cannot be None or not None at the same time")
+#     if extensions is not None:
+#         def is_valid_file(x):
+#             return has_file_allowed_extension(x, extensions)
+#     for target in sorted(class_to_idx.keys()):
+#         d = os.path.join(dir, target)
+#         if not os.path.isdir(d):
+#             continue
+#         for root, _, fnames in sorted(os.walk(d)):
+#             for fname in natsorted(fnames, number_type=int):
+#                 path = os.path.join(root, fname)
+#                 if is_valid_file(path):
+#                     item = (path, class_to_idx[target])
+#                     images.append(item)
+#
+#     return images
+#
+#
+# def pil_loader(path):
+#     # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+#     with open(path, 'rb') as f:
+#         img = Image.open(f)
+#         return img.convert('RGB')
+#
+#
+# def accimage_loader(path):
+#     import accimage
+#     try:
+#         return accimage.Image(path)
+#     except IOError:
+#         # Potentially a decoding problem, fall back to PIL.Image
+#         return pil_loader(path)
+#
+# def default_loader(path):
+#     return cv_loader(path)
 
 
 def cv_loader(path):
@@ -82,35 +85,24 @@ def cv_loader(path):
     return img
 
 
-def default_loader(path):
-    return cv_loader(path)
-
-
 class ImageFolder(VisionDataset):
     """A generic data loader where the images are arranged in this way: ::
 
-        root/dog/xxx.png
-        root/dog/xxy.png
-        root/dog/xxz.png
+        input_dir/0.png
+        input_dir/1.png
+        input_dir/2.png
 
-        root/cat/123.png
-        root/cat/nsdf3.png
-        root/cat/asd932_.png
+        target_dir/0.hdr
+        target_dir/1.hdr
+        target_dir/2.hdr
 
     Args:
-        root (string): Root directory path.
-        input_transform (callable, optional): A function/transform that  takes in an PIL image
-            and returns a transformed version. E.g, ``transforms.RandomCrop``
-        target_transform (callable, optional): A function/transform that takes in the
-            target and transforms it.
-        loader (callable, optional): A function to load an image given its path.
-        is_valid_file (callable, optional): A function that takes path of an Image file
-            and check if the file is a valid_file (used to check of corrupt files)
-
-     Attributes:
-        classes (list): List of the class names.
-        class_to_idx (dict): Dict with items (class_name, class_index).
-        imgs (list): List of (image path, class_index) tuples
+        input_dir (string): input image directory path.
+        target_dir (string): target image directory path.
+        input_transform (callable, optional): A function/transform that takes in an cv2 image
+            and returns a transformed version.
+        target_transform (callable, optional): A function/transform that takes in an cv2 image
+            and returns a transformed version.
     """
 
     def __init__(self, input_dir, target_dir, input_transform=None, target_transform=None):
