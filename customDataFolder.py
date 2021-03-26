@@ -2,6 +2,7 @@ from torchvision.datasets.vision import VisionDataset
 
 from PIL import Image
 import torch
+import torchvision.transforms as transforms
 import cv2
 import os
 import os.path
@@ -81,8 +82,35 @@ def cv_loader(path):
     img = cv2.imread(path, -1)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = img.astype("float32")
-
     return img
+
+
+def down_sample(input_, target, down_sp_rate):
+    """
+    down-samples input and label at a given down sampling rate
+    :param input_: input tensor of shape (m, c, h, w)
+    :param target: label tensor of shape (m, c, h, w)
+    :param down_sp_rate: a positive integer specifying the down sampling rate
+    :return: down-sampled input, label pair
+    """
+    if down_sp_rate is 1:
+        return input_, target
+    input_ = input_[:, :, ::down_sp_rate, ::down_sp_rate]
+    target = target[:, :, ::down_sp_rate, ::down_sp_rate]
+    return input_, target
+
+
+def normalize(input_, target):
+    """
+    normalizes input to [0, 1] and target to [0, >1]
+    :param input_: input tensor. Expects original input image files to be 16-bit PNG (uint16)
+    :param target: label tensor. Expects original label image files to be 32-bit .hdr (float32)
+    :return: normalized input and label
+    """
+    target = target
+    target = target / 2 ** 16
+    input_ = input_ / 2 ** 16
+    return input_, target
 
 
 class ImageFolder(VisionDataset):
@@ -110,8 +138,14 @@ class ImageFolder(VisionDataset):
         self.targets = natsorted(os.listdir(target_dir), number_type=int)
         self.input_dir = input_dir
         self.target_dir = target_dir
-        self.input_transform = input_transform
-        self.target_transform = target_transform
+        if input_transform is not None:
+            self.input_transform = input_transform
+        else:
+            self.input_transform = transforms.Compose([transforms.ToTensor()])
+        if target_transform is not None:
+            self.target_transform = target_transform
+        else:
+            self.target_transform = transforms.Compose([transforms.ToTensor()])
         self.check_files()
         return
 
@@ -121,10 +155,9 @@ class ImageFolder(VisionDataset):
     def __getitem__(self, item):
         input_sample = cv_loader(self.input_dir + self.inputs[item])
         target_sample = cv_loader(self.target_dir + self.targets[item])
-        if self.input_transform is not None:
-            input_sample = self.input_transform(input_sample)
-        if self.target_transform is not None:
-            target_sample = self.target_transform(target_sample)
+        input_sample = self.input_transform(input_sample)
+        target_sample = self.target_transform(target_sample)
+        input_sample, target_sample = normalize(input_sample, target_sample)
         return input_sample, target_sample
 
     def check_files(self):

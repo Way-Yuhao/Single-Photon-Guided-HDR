@@ -88,34 +88,6 @@ def print_params():
     return
 
 
-def down_sample(input, target, down_sp_rate):
-    """
-    down-samples input and label at a given down sampling rate
-    :param input: input tensor of shape (m, c, h, w)
-    :param target: label tensor of shape (m, c, h, w)
-    :param down_sp_rate: a positive integer specifying the down sampling rate
-    :return: down-sampled input, label pair
-    """
-    if down_sp_rate is 1:
-        return input, target
-    input = input[:, :, ::down_sp_rate, ::down_sp_rate]
-    target = target[:, :, ::down_sp_rate, ::down_sp_rate]
-    return input, target
-
-
-def normalize(input, target):
-    """
-    normalizes input to [0, 1] and target to [0, >1]
-    :param input: input tensor. Expects original input image files to be 16-bit PNG (uint16)
-    :param target: label tensor. Expects original label image files to be 32-bit .hdr (float32)
-    :return: normalized input and label
-    """
-    target = target
-    target = target / 2 ** 16
-    input = input / 2 ** 16
-    return input, target
-
-
 def tone_map_single(img):
     """
     Tone-mapping algorithm proposed by Nima Khademi Kalantari and Ravi Ramamoorthi.
@@ -190,6 +162,7 @@ def save_hdr(img, path):
     return
 
 
+
 def disp_plt(img, title="", tone_map=False):
     """
     :param img: image to display
@@ -200,8 +173,7 @@ def disp_plt(img, title="", tone_map=False):
     img = img.detach().clone()
     img = img.cpu().squeeze().permute(1, 2, 0)
     img = np.float32(img)
-    if normalize:
-        img = img / img.max()
+    img = img / img.max()  # normalize to [0, 1]
     if tone_map:
         tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
         img = tonemapDrago.process(img)
@@ -284,8 +256,6 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
             label_data, _ = val_label_iter.next()
             input_data = input_data.to(device)
             label_data = label_data.to(device)
-            input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
-            input_data, label_data = normalize(input_data, label_data)
             outputs = net(input_data)
             loss = compute_l1_loss(outputs, label_data)
             running_loss += loss.item()
@@ -348,8 +318,6 @@ def cross_validation(net, device, tb, load_weights=False, pre_trained_params_pat
             label_data, _ = train_label_iter.next()
             input_data = input_data.to(device)
             label_data = label_data.to(device)
-            # input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
-            input_data, label_data = normalize(input_data, label_data)
             optimizer.zero_grad()
             outputs = net(input_data)
             loss = compute_l1_loss(outputs, label_data)
@@ -403,8 +371,6 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
             input_data, label_data = train_iter.next()
             input_data = input_data.to(device)
             label_data = label_data.to(device)
-            input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
-            input_data, label_data = normalize(input_data, label_data)
 
             optimizer.zero_grad()
             outputs = net(input_data)
