@@ -173,7 +173,7 @@ def disp_plt(img, title="", tone_map=False):
     img = img.detach().clone()
     img = img.cpu().squeeze().permute(1, 2, 0)
     img = np.float32(img)
-    img = img / img.max()  # normalize to [0, 1]
+    # img = img / img.max()  # normalize to [0, 1]
     if tone_map:
         tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
         img = tonemapDrago.process(img)
@@ -335,7 +335,7 @@ def cross_validation(net, device, tb, load_weights=False, pre_trained_params_pat
         if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
-            disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1))
+            disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
             save_16bit_png(sample_val_output, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
             save_weights(net, ep)
 
@@ -386,7 +386,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
         # if ep % 100 == 99:  # for every 100 epochs
         if True:
             save_16bit_png(outputs[0, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
-            disp_plt(outputs[0, :, :, :], title="sample training output in epoch {}".format(ep + 1))
+            disp_plt(outputs[0, :, :, :], title="sample training output in epoch {}".format(ep + 1), tone_map=True)
         running_loss = 0.0
         # save_weights(net, ep)
 
@@ -422,8 +422,6 @@ def test(net, tb, pre_trained_params_path):
         input_data, label_data = \
             select_target_example(target_batch_idx, target_eg_idx,
                                   test_input_iter, test_label_iter, mode="test", batch_size=batch_size)
-        input_data, label_data = down_sample(input_data, label_data, down_sp_rate)
-        input_data, label_data = normalize(input_data, label_data)
         outputs = net(input_data)
         loss = compute_l1_loss(outputs, label_data)
 
