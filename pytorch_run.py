@@ -28,7 +28,7 @@ down_sp_rate = 1  # down sample rate
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 10
+epoch = 50
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -227,7 +227,7 @@ def save_weights(net, ep=None):
     return
 
 
-def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb):
+def dev(net, device, dev_loader, epoch_idx, tb):
     """
     performs validat
     :param net:
@@ -238,16 +238,14 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
     :param tb:
     :return: None
     """
-    val_input_iter = iter(input_loader)
-    val_label_iter = iter(label_loader)
-    num_mini_batches = len(input_loader)
+    val_iter = iter(dev_loader)
+    num_mini_batches = len(val_iter)
     net.eval()
     outputs = None
     with torch.no_grad():
         running_loss = 0.0
         for _ in range(num_mini_batches):
-            input_data, _ = val_input_iter.next()
-            label_data, _ = val_label_iter.next()
+            input_data, label_data = val_iter.next()
             input_data = input_data.to(device)
             label_data = label_data.to(device)
             outputs = net(input_data)
@@ -259,14 +257,15 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
         tb.add_scalar('loss/dev', val_loss, epoch_idx)
     net.train()
 
-    sample_output = outputs[0, :, :, :]
+    sample_output = outputs[1, :, :, :]
+    # disp_plt(sample_output, title="sample dev output", tone_map=True)
     return val_loss, sample_output
 
 # TODO: rename
 # TODO: track model with lowest dev loss -> final model
 
 
-def cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=None):
+def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None):
     print_params()  # print hyper parameters
     net.to(device)
     net.train()
@@ -274,41 +273,32 @@ def cross_validation(net, device, tb, load_weights=False, pre_trained_params_pat
         load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
     validation_split = .2
-    transform = transforms.Compose([transforms.ToTensor()])
-    dataset_input = customDataFolder.ImageFolder(train_input_path, input_transform=transform)
-    dataset_label = customDataFolder.ImageFolder(train_label_path, input_transform=transform)
-    assert (len(dataset_input) == len(dataset_label))
-    dataset_size = len(dataset_input)
+    dataset = customDataFolder.ImageFolder(train_input_path, train_label_path)
+    dataset_size = len(dataset)
     indices = list(range(dataset_size))
     split = int(np.floor(validation_split * dataset_size))
-    train_input_indices, val_input_indices = indices[split:], indices[:split]
-    train_label_indices, val_label_indices = indices[split:], indices[:split]
-    train_input_sampler = SubsetSequenceSampler(train_input_indices)
-    valid_input_sampler = SubsetSequenceSampler(val_input_indices)
-    train_label_sampler = SubsetSequenceSampler(train_label_indices)
-    valid_label_sampler = SubsetSequenceSampler(val_label_indices)
+    train_indices, dev_indices = indices[split:], indices[:split]
+    train_sampler = SubsetSequenceSampler(train_indices)
+    dev_sampler = SubsetSequenceSampler(dev_indices)
 
-    train_input_loader = load_hdr_data(path=train_input_path, transform=transform, sampler=train_input_sampler)
-    train_label_loader = load_hdr_data(path=train_label_path, transform=transform, sampler=train_label_sampler)
-    valid_input_loader = load_hdr_data(path=train_input_path, transform=transform, sampler=valid_input_sampler)
-    valid_label_loader = load_hdr_data(path=train_label_path, transform=transform, sampler=valid_label_sampler)
+    train_loader = load_hdr_data(input_path=train_input_path, target_path=train_label_path, sampler=train_sampler)
+    dev_loader = load_hdr_data(input_path=train_input_path, target_path=train_label_path, sampler=dev_sampler)
+
     print("Using cross-validation with a {:.0%}/{:.0%} train/dev split:".format(1 - validation_split, validation_split))
-    print("size of train set = {} mini-batches | size of dev set = {} mini-batches".format(len(train_input_loader),
-                                                                                           len(valid_input_loader)))
-    num_mini_batches = len(train_input_loader)
+    print("size of train set = {} mini-batches | size of dev set = {} mini-batches".format(len(train_loader),
+                                                                                           len(dev_loader)))
+    num_mini_batches = len(train_loader)
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
 
     # training loop
     running_loss = 0.0
-    outputs = None
+    outputs, label_data = None, None
     for ep in range(epoch):
         print("Epoch ", ep)
-        train_input_iter = iter(train_input_loader)
-        train_label_iter = iter(train_label_loader)
+        train_iter = iter(train_loader)
 
         for _ in tqdm(range(num_mini_batches)):
-            input_data, _ = train_input_iter.next()
-            label_data, _ = train_label_iter.next()
+            input_data, label_data = train_iter.next()
             input_data = input_data.to(device)
             label_data = label_data.to(device)
             optimizer.zero_grad()
@@ -318,14 +308,13 @@ def cross_validation(net, device, tb, load_weights=False, pre_trained_params_pat
             optimizer.step()
             running_loss += loss.item()
         # record loss values after each epoch
-        cur_val_loss, sample_val_output = cross_validation_test(net, device, valid_input_loader, valid_label_loader, ep,
-                                                                tb)
+        cur_val_loss, sample_val_output = dev(net, device, dev_loader, ep, tb)
         cur_train_loss = running_loss / num_mini_batches
         tb.add_scalar('loss/train', cur_train_loss, ep)
         print("train loss = {:.3f} | valid loss = {:.3f}".format(cur_train_loss, cur_val_loss))
         running_loss = 0.0
 
-        if ep % 10 == 9:  # for every 10 epochs
+        if ep % 10 == 9 or True:  # for every 10 epochs
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
@@ -416,14 +405,14 @@ def show_predictions(net, pre_trained_params_path):
 def main():
     global batch_size, version
     print("======================================================")
-    version = "-v0.5.0"
+    version = "-v0.5.2"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # test(net, pre_trained_params_path=param_to_load)
-    # cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
 
