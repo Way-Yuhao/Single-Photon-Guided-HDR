@@ -405,7 +405,7 @@ def show_predictions(net, pre_trained_params_path):
 def main():
     global batch_size, version
     print("======================================================")
-    version = "-v0.5.3"
+    version = "-v0.5.4"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
