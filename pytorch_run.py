@@ -46,10 +46,11 @@ def set_device():
     return device
 
 
-def load_hdr_data(input_path, target_path, transform, sampler=None):
+def load_hdr_data(input_path, target_path, transform=None, sampler=None):
     """
     custom dataloader that loads .hdr and .png data.
-    :param path: path to files for the dataset
+    :param input_path: path to input images
+    :param target_path: path to target iamges
     :param transform: requires transform to only consist of ToTensor
     :param sampler:
     :return: dataloader object
@@ -196,16 +197,16 @@ def flush_plt():
     return
 
 
-def select_example(iter, idx):
+def select_example(iter_, idx):
     """
     Issue: only works when mini batch size = 1
-    :param iter:
+    :param iter_:
     :param idx:
     :return:
     """
     input_data, label_data = None, None
     for _ in range(idx + 1):
-        input_data, label_data = iter.next()
+        input_data, label_data = iter_.next()
     assert (input_data is not None and label_data is not None)
     return input_data, label_data
 
@@ -345,8 +346,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     net.train()
     if load_weights:
         load_network_weights(net, pre_trained_params_path)
-    transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
-    train_loader = load_hdr_data(train_input_path, train_label_path, transform)
+    train_loader = load_hdr_data(train_input_path, train_label_path)
     # train_label_loader = load_hdr_data(train_label_path, transform)
     # assert (len(train_input_loader.dataset) == len(train_label_loader.dataset))
     num_mini_batches = len(train_loader)  # number of mini-batches per epoch
@@ -376,7 +376,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
         print("loss = {:.3f}".format(loss_cur_batch))
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
-        if ep % 10 == 9:  # for every 10 epochs
+        if ep % 10 == 9 or True:  # for every 10 epochs
             save_16bit_png(outputs[0, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(outputs[0, :, :, :], title="sample training output in epoch {}".format(ep + 1), tone_map=True)
             save_weights(net, ep)
@@ -425,8 +425,8 @@ def main():
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    test(net, pre_trained_params_path=param_to_load)
+    train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # test(net, pre_trained_params_path=param_to_load)
     # cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
