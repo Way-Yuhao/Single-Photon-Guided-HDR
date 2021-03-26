@@ -311,10 +311,10 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         cur_val_loss, sample_val_output = dev(net, device, dev_loader, ep, tb)
         cur_train_loss = running_loss / num_mini_batches
         tb.add_scalar('loss/train', cur_train_loss, ep)
-        print("train loss = {:.3f} | valid loss = {:.3f}".format(cur_train_loss, cur_val_loss))
+        print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_val_loss))
         running_loss = 0.0
 
-        if ep % 10 == 9 or True:  # for every 10 epochs
+        if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = outputs[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
@@ -405,7 +405,7 @@ def show_predictions(net, pre_trained_params_path):
 def main():
     global batch_size, version
     print("======================================================")
-    version = "-v0.5.2"
+    version = "-v0.5.3"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
