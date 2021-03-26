@@ -264,7 +264,6 @@ def cross_validation_test(net, device, input_loader, label_loader, epoch_idx, tb
 
 # TODO: rename
 # TODO: track model with lowest dev loss -> final model
-# TODO: save model for every
 
 
 def cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=None):
@@ -347,10 +346,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     if load_weights:
         load_network_weights(net, pre_trained_params_path)
     train_loader = load_hdr_data(train_input_path, train_label_path)
-    # train_label_loader = load_hdr_data(train_label_path, transform)
-    # assert (len(train_input_loader.dataset) == len(train_label_loader.dataset))
     num_mini_batches = len(train_loader)  # number of mini-batches per epoch
-
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
 
     # training loop
@@ -388,7 +384,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     return
 
 
-def test(net, pre_trained_params_path):
+def show_predictions(net, pre_trained_params_path):
     global batch_size
     target_idx = 9
     batch_size = 1
