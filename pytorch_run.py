@@ -28,7 +28,7 @@ down_sp_rate = 1  # down sample rate
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 500
+epoch = 10
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -196,24 +196,17 @@ def flush_plt():
     return
 
 
-def select_target_example(batch_idx, eg_idx, input_iter, label_iter, mode=None, batch_size=None):
+def select_example(iter, idx):
     """
     Issue: only works when mini batch size = 1
-    :param batch_idx:
-    :param eg_idx:
-    :param input_iter:
-    :param label_iter:
-    :param mode:
-    :param batch_size:
+    :param iter:
+    :param idx:
     :return:
     """
     input_data, label_data = None, None
-    for _ in range(batch_idx + 1):
-        input_data, _ = input_iter.next()
-        label_data, _ = label_iter.next()
+    for _ in range(idx + 1):
+        input_data, label_data = iter.next()
     assert (input_data is not None and label_data is not None)
-    # disp_plt(input_data, "input: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), True)
-    # disp_plt(label_data, "label: {}th example in {}th mini-batch. {}ing with batch size = {}".format(batch_idx, eg_idx, mode, batch_size), False)
     return input_data, label_data
 
 
@@ -225,9 +218,9 @@ def save_weights(net, ep=None):
     :return: None
     """
     if epoch is None:
-        filename = train_param_path + "unet_{}.pth".format(version)
+        filename = train_param_path + "unet{}.pth".format(version)
     else:
-        filename = train_param_path + "unet_{}_epoch_{}.pth".format(version, ep)
+        filename = train_param_path + "unet{}_epoch_{}.pth".format(version, ep)
     torch.save(net.state_dict(), filename)
     print("network weights saved to ", filename)
     return
@@ -383,60 +376,44 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
         print("loss = {:.3f}".format(loss_cur_batch))
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
-        # if ep % 100 == 99:  # for every 100 epochs
-        if True:
+        if ep % 10 == 9:  # for every 10 epochs
             save_16bit_png(outputs[0, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(outputs[0, :, :, :], title="sample training output in epoch {}".format(ep + 1), tone_map=True)
+            save_weights(net, ep)
         running_loss = 0.0
-        # save_weights(net, ep)
-
-    save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
 
     print("finished training")
-    # tb.add_image("train_final_output/linear", outputs.detach().cpu().squeeze())
-    # tb.add_image("train_final_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
-    # tb.add_image("train_final_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
-
+    save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
     save_weights(net, ep="{}_FINAL".format(epoch))
     return
 
 
-def test(net, tb, pre_trained_params_path):
+def test(net, pre_trained_params_path):
     global batch_size
-    target_batch_idx = 9
-    target_eg_idx = 0
+    target_idx = 9
     batch_size = 1
     print("testing on {} images".format(batch_size))
     load_network_weights(net, pre_trained_params_path)
 
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
-    test_input_loader = load_hdr_data(train_input_path, transform)
-    test_label_loader = load_hdr_data(train_label_path, transform)
-    assert (len(test_input_loader.dataset) == len(test_label_loader.dataset))
-
-    test_input_iter = iter(test_input_loader)
-    test_label_iter = iter(test_label_loader)
+    test_loader = load_hdr_data(train_input_path, train_label_path, transform)
+    test_iter = iter(test_loader)
 
     net.eval()
     with torch.no_grad():
-        input_data, label_data = \
-            select_target_example(target_batch_idx, target_eg_idx,
-                                  test_input_iter, test_label_iter, mode="test", batch_size=batch_size)
+        input_data, label_data = select_example(test_iter, target_idx)
         outputs = net(input_data)
         loss = compute_l1_loss(outputs, label_data)
 
     print("loss at test time = ", loss.item())
-    # tb.add_image("test_output/linear", outputs.detach().cpu().squeeze())
-    # tb.add_image("test_output/tonemapped", tone_map_single(outputs.detach().cpu().squeeze()))
-    # tb.add_image("test_output/normalized", outputs.detach().cpu().squeeze() / outputs.max())
 
     disp_plt(img=input_data, title="input", tone_map=True)
     disp_plt(img=outputs, title="output / loss = {:.3f}".format(loss.item()), tone_map=True)
     disp_plt(img=label_data, title="target", tone_map=True)
 
-    save_hdr(outputs, "./out_files/test_output_{}_{}.hdr".format(version, target_batch_idx))
-    save_hdr(input_data, "./out_files/test_input_{}_{}.hdr".format(version, target_batch_idx))
-    save_hdr(label_data, "./out_files/test_ground_truth_{}_{}.hdr".format(version, target_batch_idx))
+    save_hdr(outputs, "./out_files/test_output_{}_{}.hdr".format(version, target_idx))
+    save_hdr(input_data, "./out_files/test_input_{}_{}.hdr".format(version, target_idx))
+    save_hdr(label_data, "./out_files/test_ground_truth_{}_{}.hdr".format(version, target_idx))
     return
 
 
@@ -448,8 +425,8 @@ def main():
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
-    train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # test(net, tb, pre_trained_params_path=param_to_load)
+    # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    test(net, pre_trained_params_path=param_to_load)
     # cross_validation(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
