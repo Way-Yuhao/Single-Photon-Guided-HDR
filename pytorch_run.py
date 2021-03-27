@@ -28,7 +28,7 @@ down_sp_rate = 1  # down sample rate
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 50
+epoch = 500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -259,6 +259,13 @@ def dev(net, device, dev_loader, epoch_idx, tb):
 
     sample_output = outputs[1, :, :, :]
     # disp_plt(sample_output, title="sample dev output", tone_map=True)
+
+    # disp_plt(input_data[0, :, :, :], title="input", tone_map=True)
+    # disp_plt(outputs[0, :, :, :], title="outputs", tone_map=True)
+    # disp_plt(label_data[0, :, :, :], title="target", tone_map=True)
+    # flush_plt()
+    # assert (0)
+
     return val_loss, sample_output
 
 # TODO: rename
@@ -405,7 +412,7 @@ def show_predictions(net, pre_trained_params_path):
 def main():
     global batch_size, version
     print("======================================================")
-    version = "-v0.5.4"
+    version = "-v0.5.6"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
