@@ -142,7 +142,6 @@ def save_16bit_png(img, path):
     output_img *= 2 ** 16
     output_img[output_img >= 2 ** 16 - 1] = 2 ** 16 - 1
     output_img = output_img.astype(np.uint16)
-    # output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
     cv2.imwrite(path, output_img)
     print("16-bit PNG save to ", path)
     return
@@ -157,7 +156,6 @@ def save_hdr(img, path):
     """
     img = img.detach().clone()
     output_img = img.cpu().squeeze().permute(1, 2, 0).numpy()
-    # output_img = cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB)
     radiance_writer(output_img, path)
     print("32 bit .hdr file save to ", path)
     return
@@ -179,7 +177,7 @@ def disp_plt(img, title="", tone_map=False):
         tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
         img = tonemapDrago.process(img)
     plt.imshow(img)
-    full_title = "{} / {} / tonemapping={}".format(version, title, tone_map)
+    full_title = "{} / {} / tone mapping={}".format(version, title, tone_map)
     plt.title(full_title)
     plt.show()
     return
@@ -227,16 +225,33 @@ def save_weights(net, ep=None):
     return
 
 
-def dev(net, device, dev_loader, epoch_idx, tb):
+def disp_triplets(input_, output, target, idx=0, msg=None):
     """
-    performs validat
-    :param net:
-    :param device:
-    :param input_loader:
-    :param label_loader:
-    :param epoch_idx:
-    :param tb:
-    :return: None
+    helper function that displays a triplet of input, output, and target
+    :param input_:
+    :param output:
+    :param target:
+    :param idx:
+    :param msg:
+    :return:
+    """
+    disp_plt(input_[idx, :, :, :], title=msg+" / input", tone_map=True)
+    disp_plt(output[idx, :, :, :], title=msg+" / outputs", tone_map=True)
+    disp_plt(target[idx, :, :, :], title=msg+" / target", tone_map=True)
+    flush_plt()
+    return
+
+
+def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
+    """
+    computes the loss on the dev set, without backprop
+    :param net: pytorch model object
+    :param device: CUDA device, if available
+    :param dev_loader: dev set data loader
+    :param epoch_idx: current epoch number, for printing
+    :param tb: tensorboard object
+    :param target_idx: target sample index to return
+    :return: loss for entire dev set (1 epoch), sample output in dev set
     """
     val_iter = iter(dev_loader)
     num_mini_batches = len(val_iter)
@@ -252,27 +267,25 @@ def dev(net, device, dev_loader, epoch_idx, tb):
             loss = compute_l1_loss(outputs, label_data)
             running_loss += loss.item()
         # record loss values
-        val_loss = running_loss / num_mini_batches
-        print("val loss = {:.3f}".format(val_loss))
-        tb.add_scalar('loss/dev', val_loss, epoch_idx)
+        dev_loss = running_loss / num_mini_batches
+        print("val loss = {:.3f}".format(dev_loss))
+        tb.add_scalar('loss/dev', dev_loss, epoch_idx)
     net.train()
 
-    sample_output = outputs[1, :, :, :]
-    # disp_plt(sample_output, title="sample dev output", tone_map=True)
-
-    # disp_plt(input_data[0, :, :, :], title="input", tone_map=True)
-    # disp_plt(outputs[0, :, :, :], title="outputs", tone_map=True)
-    # disp_plt(label_data[0, :, :, :], title="target", tone_map=True)
-    # flush_plt()
-    # assert (0)
-
-    return val_loss, sample_output
-
-# TODO: rename
-# TODO: track model with lowest dev loss -> final model
+    sample_output = outputs[target_idx, :, :, :]
+    return dev_loss, sample_output
 
 
 def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None):
+    """
+    performs a train/dev split
+    :param net: pytorch model object
+    :param device: CUDA device, if available
+    :param tb: tensorboard object
+    :param load_weights: boolean flag, set true to load pre-trained weights
+    :param pre_trained_params_path: path to load pre-trained network weights
+    :return: None
+    """
     print_params()  # print hyper parameters
     net.to(device)
     net.train()
@@ -298,43 +311,52 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
 
     # training loop
-    running_loss = 0.0
-    outputs, label_data = None, None
+    running_train_loss = 0.0
+    output, target = None, None
     for ep in range(epoch):
         print("Epoch ", ep)
         train_iter = iter(train_loader)
 
         for _ in tqdm(range(num_mini_batches)):
-            input_data, label_data = train_iter.next()
-            input_data = input_data.to(device)
-            label_data = label_data.to(device)
+            input_, target = train_iter.next()
+            input_ = input_.to(device)
+            target = target.to(device)
             optimizer.zero_grad()
-            outputs = net(input_data)
-            loss = compute_l1_loss(outputs, label_data)
+            output = net(input_)
+            loss = compute_l1_loss(output, target)
             loss.backward()
             optimizer.step()
-            running_loss += loss.item()
+            running_train_loss += loss.item()
         # record loss values after each epoch
-        cur_val_loss, sample_val_output = dev(net, device, dev_loader, ep, tb)
-        cur_train_loss = running_loss / num_mini_batches
+        cur_train_loss = running_train_loss / num_mini_batches
         tb.add_scalar('loss/train', cur_train_loss, ep)
-        print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_val_loss))
-        running_loss = 0.0
+        cur_dev_loss, dev_output_sample = dev(net, device, dev_loader, ep, tb)
+        print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_dev_loss))
+        running_train_loss = 0.0
 
         if ep % 10 == 9:  # for every 10 epochs
-            sample_train_output = outputs[0, :, :, :]
+            sample_train_output = output[0, :, :, :]
             save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
-            save_16bit_png(sample_val_output, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
+            save_16bit_png(dev_output_sample, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
             save_weights(net, ep)
 
     print("finished training")
-    save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
+    save_16bit_png(target[0, :, :, :], path="./out_files/sample_ground_truth.png")
     save_weights(net, ep="{}_FINAL".format(epoch))
     return
 
 
 def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
+    """
+    performs training only
+    :param net: pytorch model object
+    :param device: CUDA device, if available
+    :param tb: tensorboard object
+    :param load_weights: boolean flag, set true to load pre-trained weights
+    :param pre_trained_params_path: path to load pre-trained network weights
+    :return: None
+    """
     print_params()  # print hyper parameters
     print("training")
     net.to(device)
@@ -347,19 +369,19 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
 
     # training loop
     running_loss = 0.0
-    outputs = None
+    output = None
     for ep in range(epoch):
         print("Epoch ", ep)
         train_iter = iter(train_loader)
 
         for _ in tqdm(range(num_mini_batches)):
-            input_data, label_data = train_iter.next()
-            input_data = input_data.to(device)
-            label_data = label_data.to(device)
+            input_, target = train_iter.next()
+            input_ = input_.to(device)
+            target = target.to(device)
 
             optimizer.zero_grad()
-            outputs = net(input_data)
-            loss = compute_l1_loss(outputs, label_data)
+            output = net(input_)
+            loss = compute_l1_loss(output, target)
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
@@ -369,18 +391,24 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
         tb.add_scalar('training loss', loss_cur_batch, ep)
 
         if ep % 10 == 9 or True:  # for every 10 epochs
-            save_16bit_png(outputs[0, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
-            disp_plt(outputs[0, :, :, :], title="sample training output in epoch {}".format(ep + 1), tone_map=True)
+            save_16bit_png(output[0, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
+            disp_plt(output[0, :, :, :], title="sample training output in epoch {}".format(ep + 1), tone_map=True)
             save_weights(net, ep)
         running_loss = 0.0
 
     print("finished training")
-    save_16bit_png(label_data[0, :, :, :], path="./out_files/sample_ground_truth.png")
+    save_16bit_png(target[0, :, :, :], path="./out_files/sample_ground_truth.png")
     save_weights(net, ep="{}_FINAL".format(epoch))
     return
 
 
 def show_predictions(net, pre_trained_params_path):
+    """
+    displays and saves a select sample output
+    :param net: pytorch object
+    :param pre_trained_params_path: path to load pre-trained weights
+    :return: None
+    """
     global batch_size
     target_idx = 9
     batch_size = 1
@@ -393,23 +421,27 @@ def show_predictions(net, pre_trained_params_path):
 
     net.eval()
     with torch.no_grad():
-        input_data, label_data = select_example(test_iter, target_idx)
-        outputs = net(input_data)
-        loss = compute_l1_loss(outputs, label_data)
+        input_, target = select_example(test_iter, target_idx)
+        output = net(input_)
+        loss = compute_l1_loss(output, target)
 
     print("loss at test time = ", loss.item())
 
-    disp_plt(img=input_data, title="input", tone_map=True)
-    disp_plt(img=outputs, title="output / loss = {:.3f}".format(loss.item()), tone_map=True)
-    disp_plt(img=label_data, title="target", tone_map=True)
+    disp_plt(img=input_, title="input", tone_map=True)
+    disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), tone_map=True)
+    disp_plt(img=target, title="target", tone_map=True)
 
-    save_hdr(outputs, "./out_files/test_output_{}_{}.hdr".format(version, target_idx))
-    save_hdr(input_data, "./out_files/test_input_{}_{}.hdr".format(version, target_idx))
-    save_hdr(label_data, "./out_files/test_ground_truth_{}_{}.hdr".format(version, target_idx))
+    save_hdr(output, "./out_files/test_output_{}_{}.hdr".format(version, target_idx))
+    save_hdr(input_, "./out_files/test_input_{}_{}.hdr".format(version, target_idx))
+    save_hdr(target, "./out_files/test_ground_truth_{}_{}.hdr".format(version, target_idx))
     return
 
 
 def main():
+    """
+    main function
+    :return: None
+    """
     global batch_size, version
     print("======================================================")
     version = "-v0.5.6"
