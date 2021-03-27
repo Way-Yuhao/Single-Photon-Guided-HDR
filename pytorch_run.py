@@ -204,11 +204,11 @@ def select_example(iter_, idx):
     :param idx:
     :return:
     """
-    input_data, label_data = None, None
+    input_, spad, target = None, None, None
     for _ in range(idx + 1):
-        input_data, label_data = iter_.next()
-    assert (input_data is not None and label_data is not None)
-    return input_data, label_data
+        input_, spad, target = iter_.next()
+    assert (input_ is not None and spad is not None and target is not None)
+    return input_, spad, target
 
 
 def save_weights(net, ep=None):
@@ -416,30 +416,29 @@ def show_predictions(net, pre_trained_params_path):
     :return: None
     """
     global batch_size
-    target_idx = 9
+    target_idx = 310
     batch_size = 1
     print("testing on {} images".format(batch_size))
     load_network_weights(net, pre_trained_params_path)
-
-    transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
-    test_loader = load_hdr_data(input_path, target_path, transform)
+    test_loader = load_hdr_data(input_path, spad_path, target_path)
     test_iter = iter(test_loader)
 
     net.eval()
     with torch.no_grad():
-        input_, target = select_example(test_iter, target_idx)
-        output = net(input_)
+        input_, spad, target = select_example(test_iter, target_idx)
+        output = net(input_, spad)
         loss = compute_l1_loss(output, target)
 
     print("loss at test time = ", loss.item())
 
     disp_plt(img=input_, title="input", tone_map=True)
+    disp_plt(img=spad, title="spad", tone_map=True)
     disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), tone_map=True)
     disp_plt(img=target, title="target", tone_map=True)
 
-    save_hdr(output, "./out_files/test_output_{}_{}.hdr".format(version, target_idx))
-    save_hdr(input_, "./out_files/test_input_{}_{}.hdr".format(version, target_idx))
-    save_hdr(target, "./out_files/test_ground_truth_{}_{}.hdr".format(version, target_idx))
+    save_hdr(output, "./out_files/test_output{}_{}.hdr".format(version, target_idx))
+    save_hdr(input_, "./out_files/test_input{}_{}.hdr".format(version, target_idx))
+    save_hdr(target, "./out_files/test_ground_truth{}_{}.hdr".format(version, target_idx))
     return
 
 
@@ -456,8 +455,8 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # test(net, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    show_predictions(net, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
 
