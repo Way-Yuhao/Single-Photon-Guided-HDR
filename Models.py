@@ -70,7 +70,7 @@ class U_Net(nn.Module):
         self.Up_conv5 = conv_block(filters[4], filters[3])
 
         self.Up4 = up_conv(filters[3], filters[2])
-        self.Up_conv4 = conv_block(filters[3], filters[2])
+        self.Up_conv4 = conv_block(filters[3] + 3, filters[2])
 
         self.Up3 = up_conv(filters[2], filters[1])
         self.Up_conv3 = conv_block(filters[2], filters[1])
@@ -82,7 +82,7 @@ class U_Net(nn.Module):
 
        # self.active = torch.nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x, y):
 
         e1 = self.Conv1(x)
 
@@ -91,6 +91,7 @@ class U_Net(nn.Module):
 
         e3 = self.Maxpool2(e2)
         e3 = self.Conv3(e3)
+        # e3 = torch.cat((e3, y), dim=1)
 
         e4 = self.Maxpool3(e3)
         e4 = self.Conv4(e4)
@@ -104,7 +105,7 @@ class U_Net(nn.Module):
         d5 = self.Up_conv5(d5)
 
         d4 = self.Up4(d5)
-        d4 = torch.cat((e3, d4), dim=1)
+        d4 = torch.cat((e3, d4, y), dim=1)
         d4 = self.Up_conv4(d4)
 
         d3 = self.Up3(d4)

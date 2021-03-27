@@ -59,7 +59,7 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=0, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
 
 
@@ -261,18 +261,17 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
     :param target_idx: target sample index to return
     :return: loss for entire dev set (1 epoch), sample output in dev set
     """
-    val_iter = iter(dev_loader)
-    num_mini_batches = len(val_iter)
+    dev_iter = iter(dev_loader)
+    num_mini_batches = len(dev_iter)
     net.eval()
-    outputs = None
+    output = None
     with torch.no_grad():
         running_loss = 0.0
         for _ in range(num_mini_batches):
-            input_data, label_data = val_iter.next()
-            input_data = input_data.to(device)
-            label_data = label_data.to(device)
-            outputs = net(input_data)
-            loss = compute_l1_loss(outputs, label_data)
+            input_, spad, target = dev_iter.next()
+            input_, spad, target = input_.to(device), spad.to(device), target.to(device)
+            output = net(input_, spad)
+            loss = compute_l1_loss(output, target)
             running_loss += loss.item()
         # record loss values
         dev_loss = running_loss / num_mini_batches
@@ -280,7 +279,7 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
         tb.add_scalar('loss/dev', dev_loss, epoch_idx)
     net.train()
 
-    sample_output = outputs[target_idx, :, :, :]
+    sample_output = output[target_idx, :, :, :]
     return dev_loss, sample_output
 
 
@@ -329,7 +328,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
             input_, spad, target = train_iter.next()
             input_, spad, target = input_.to(device), spad.to(device), target.to(device)
             optimizer.zero_grad()
-            output = net(input_)
+            output = net(input_, spad)
             loss = compute_l1_loss(output, target)
             loss.backward()
             optimizer.step()
@@ -370,7 +369,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     net.train()
     if load_weights:
         load_network_weights(net, pre_trained_params_path)
-    train_loader = load_hdr_data(input_path, target_path)
+    train_loader = load_hdr_data(input_path, spad_path, target_path)
     num_mini_batches = len(train_loader)  # number of mini-batches per epoch
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
 
@@ -382,12 +381,12 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
         train_iter = iter(train_loader)
 
         for _ in tqdm(range(num_mini_batches)):
-            input_, target = train_iter.next()
-            input_ = input_.to(device)
+            input_, spad, target = train_iter.next()
+            input_, spad, target = input_.to(device), spad.to(device), target.to(device)
             target = target.to(device)
 
             optimizer.zero_grad()
-            output = net(input_)
+            output = net(input_, spad)
             loss = compute_l1_loss(output, target)
             loss.backward()
             optimizer.step()
@@ -451,7 +450,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v0.6.0"
+    version = "-v0.6.2"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
