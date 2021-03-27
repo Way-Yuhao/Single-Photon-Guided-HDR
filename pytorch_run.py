@@ -14,7 +14,7 @@ import warnings
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 # from Models import U_Net
-from lum_fusion_model import U_Net
+from lum_fusion_model import LumFusionNet
 import customDataFolder
 from sequence_subset_sampler import SubsetSequenceSampler
 from radiance_writer import radiance_writer
@@ -450,13 +450,13 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v0.7.0"
-    param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v0.6.2", epoch)
+    version = "-v0.7.1"
+    param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
-    net = U_Net(in_ch=3, out_ch=3)
-    # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, pre_trained_params_path=param_to_load)
+    net = LumFusionNet(img_ch=3, output_ch=3)
+    train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
