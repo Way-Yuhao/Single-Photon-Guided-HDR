@@ -22,7 +22,7 @@ SPAD_mono = True          # if the sensor is monochromatic
 SPAD_T = .01               # exposure time in seconds
 SPAD_gain = 10             # uniform gain applied to the analog signal
 SPAD_tau = 150e-9          # dead time in seconds
-SPAD_down_sample_rate = 4  # spatial down sampling rate of the sensor
+SPAD_down_sample_rate = 16  # spatial down sampling rate of the sensor
 SPAD_qe = .4               # quantum efficiency index
 
 """CMOS parameters"""

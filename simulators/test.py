@@ -19,9 +19,9 @@ def disp_plt(img, title="", normalize=False):
     return
 
 
-cmos = cv2.imread("../simulated_outputs/CMOS/0_cmos.png", -1)
-ideal = cv2.imread("../simulated_outputs/ideal/0_gt.hdr", -1)
-spad = cv2.imread("../simulated_outputs/SPAD/0_spad.hdr", -1)
+cmos = cv2.imread("../simulated_outputs/CMOS/3_cmos.png", -1)
+ideal = cv2.imread("../simulated_outputs/ideal/3_gt.hdr", -1)
+spad = cv2.imread("../simulated_outputs/SPAD/3_spad.hdr", -1)
 
 # cmos_mono = cmos[:, :, 0]
 # cv2.imwrite("../simulated_outputs/mono_test.png", cmos_mono)
