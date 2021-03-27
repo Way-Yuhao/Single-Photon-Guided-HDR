@@ -100,25 +100,30 @@ def down_sample(input_, target, down_sp_rate):
     return input_, target
 
 
-def normalize(input_, target):
+def normalize(input_, spad, target):
     """
-    normalizes input to [0, 1] and target to [0, >1]
+    normalizes input to [0, 1], spad and target to [0, >1]
     :param input_: input tensor. Expects original input image files to be 16-bit PNG (uint16)
-    :param target: label tensor. Expects original label image files to be 32-bit .hdr (float32)
+    :param spad: side input tensor. Expects original input image files to be 32-bit .hdr (float32)
+    :param target: target tensor. Expects original label image files to be 32-bit .hdr (float32)
     :return: normalized input and label
     """
-    target = target
-    target = target / 2 ** 16
     input_ = input_ / 2 ** 16
-    return input_, target
+    spad = spad / 2**16
+    target = target / 2 ** 16
+    return input_, spad, target
 
 
 class ImageFolder(VisionDataset):
-    """A generic data loader where the images are arranged in this way: ::
+    """A generic data loader where the images are arranged in this way:
 
         input_dir/0.png
         input_dir/1.png
         input_dir/2.png
+
+        spad_dir/0.hdr
+        spad_dir/1.hdr
+        spad_dir/2.hdr
 
         target_dir/0.hdr
         target_dir/1.hdr
@@ -133,15 +138,21 @@ class ImageFolder(VisionDataset):
             and returns a transformed version.
     """
 
-    def __init__(self, input_dir, target_dir, input_transform=None, target_transform=None):
+    def __init__(self, input_dir, spad_dir, target_dir, input_transform=None, spad_transform=None, target_transform=None):
         self.inputs = natsorted(os.listdir(input_dir), number_type=int)
         self.targets = natsorted(os.listdir(target_dir), number_type=int)
+        self.spad_inputs = natsorted(os.listdir(spad_dir), number_type=int)
         self.input_dir = input_dir
+        self.spad_dir = spad_dir
         self.target_dir = target_dir
         if input_transform is not None:
             self.input_transform = input_transform
         else:
             self.input_transform = transforms.Compose([transforms.ToTensor()])
+        if spad_transform is not None:
+            self.spad_transform = spad_transform
+        else:
+            self.spad_transform = transforms.Compose([transforms.ToTensor()])
         if target_transform is not None:
             self.target_transform = target_transform
         else:
@@ -154,18 +165,23 @@ class ImageFolder(VisionDataset):
 
     def __getitem__(self, item):
         input_sample = cv_loader(self.input_dir + self.inputs[item])
+        spad_sample = cv_loader(self.spad_dir + self.spad_inputs[item])
         target_sample = cv_loader(self.target_dir + self.targets[item])
         input_sample = self.input_transform(input_sample)
+        spad_sample = self.spad_transform(spad_sample)
         target_sample = self.target_transform(target_sample)
-        input_sample, target_sample = normalize(input_sample, target_sample)
-        return input_sample, target_sample
+        input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
+        return input_sample, spad_sample, target_sample
 
     def check_files(self):
         # check file extensions
         if not self.inputs[0].lower().endswith("png"):
             raise FileExistsError("ERROR: expected input images of type .png")
+        if not self.spad_inputs[0].lower().endswith("hdr"):
+            raise FileExistsError("ERROR: expected SPAD input images of type .hdr")
         if not self.targets[0].lower().endswith("hdr"):
             raise FileExistsError("ERROR: expected target images of type .hdr")
+
         return
 
 

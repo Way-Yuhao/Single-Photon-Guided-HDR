@@ -21,8 +21,9 @@ from radiance_writer import radiance_writer
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 train_param_path = "./model/unet/"
-train_input_path = "../data/hdri_437_256x128/CMOS/"
-train_label_path = "../data/hdri_437_256x128/ideal/"
+input_path = "../data/hdri_437_256x128/CMOS/"
+target_path = "../data/hdri_437_256x128/ideal/"
+spad_path = "../data/hdri_437_256x128/SPAD/"
 down_sp_rate = 1  # down sample rate
 
 """Hyper Parameters"""
@@ -46,18 +47,19 @@ def set_device():
     return device
 
 
-def load_hdr_data(input_path, target_path, transform=None, sampler=None):
+def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler=None):
     """
     custom dataloader that loads .hdr and .png data.
-    :param input_path: path to input images
-    :param target_path: path to target iamges
+    :param input_path_: path to input images
+    :param spad_path_: path to spad input images
+    :param target_path_: path to target images
     :param transform: requires transform to only consist of ToTensor
     :param sampler:
     :return: dataloader object
     """
     data_loader = torch.utils.data.DataLoader(
-        customDataFolder.ImageFolder(input_path, target_path, input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
+        customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform, target_transform=transform),
+        batch_size=batch_size, num_workers=0, shuffle=False, sampler=sampler)
     return data_loader
 
 
@@ -225,19 +227,25 @@ def save_weights(net, ep=None):
     return
 
 
-def disp_triplets(input_, output, target, idx=0, msg=None):
+def disp_sample(input_, spad, output, target, idx=0, msg=""):
     """
     helper function that displays a triplet of input, output, and target
     :param input_:
+    :param spad:
     :param output:
     :param target:
     :param idx:
     :param msg:
     :return:
     """
-    disp_plt(input_[idx, :, :, :], title=msg+" / input", tone_map=True)
-    disp_plt(output[idx, :, :, :], title=msg+" / outputs", tone_map=True)
-    disp_plt(target[idx, :, :, :], title=msg+" / target", tone_map=True)
+    if input_ is not None:
+        disp_plt(input_[idx, :, :, :], title=msg + " / input", tone_map=True)
+    if spad is not None:
+        disp_plt(spad[idx, :, :, :], title=msg + " / spad", tone_map=True)
+    if output is not None:
+        disp_plt(output[idx, :, :, :], title=msg + " / outputs", tone_map=True)
+    if target is not None:
+        disp_plt(target[idx, :, :, :], title=msg + " / target", tone_map=True)
     flush_plt()
     return
 
@@ -293,7 +301,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
     validation_split = .2
-    dataset = customDataFolder.ImageFolder(train_input_path, train_label_path)
+    dataset = customDataFolder.ImageFolder(input_path, spad_path, target_path)
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     split = int(np.floor(validation_split * dataset_size))
@@ -301,8 +309,8 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     train_sampler = SubsetSequenceSampler(train_indices)
     dev_sampler = SubsetSequenceSampler(dev_indices)
 
-    train_loader = load_hdr_data(input_path=train_input_path, target_path=train_label_path, sampler=train_sampler)
-    dev_loader = load_hdr_data(input_path=train_input_path, target_path=train_label_path, sampler=dev_sampler)
+    train_loader = load_hdr_data(input_path, spad_path, target_path, None, train_sampler)
+    dev_loader = load_hdr_data(input_path, spad_path, target_path, None, dev_sampler)
 
     print("Using cross-validation with a {:.0%}/{:.0%} train/dev split:".format(1 - validation_split, validation_split))
     print("size of train set = {} mini-batches | size of dev set = {} mini-batches".format(len(train_loader),
@@ -318,9 +326,8 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         train_iter = iter(train_loader)
 
         for _ in tqdm(range(num_mini_batches)):
-            input_, target = train_iter.next()
-            input_ = input_.to(device)
-            target = target.to(device)
+            input_, spad, target = train_iter.next()
+            input_, spad, target = input_.to(device), spad.to(device), target.to(device)
             optimizer.zero_grad()
             output = net(input_)
             loss = compute_l1_loss(output, target)
@@ -363,7 +370,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     net.train()
     if load_weights:
         load_network_weights(net, pre_trained_params_path)
-    train_loader = load_hdr_data(train_input_path, train_label_path)
+    train_loader = load_hdr_data(input_path, target_path)
     num_mini_batches = len(train_loader)  # number of mini-batches per epoch
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
 
@@ -416,7 +423,7 @@ def show_predictions(net, pre_trained_params_path):
     load_network_weights(net, pre_trained_params_path)
 
     transform = transforms.Compose([transforms.ToTensor()])  # currently without normalization
-    test_loader = load_hdr_data(train_input_path, train_label_path, transform)
+    test_loader = load_hdr_data(input_path, target_path, transform)
     test_iter = iter(test_loader)
 
     net.eval()
@@ -444,7 +451,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v0.5.6"
+    version = "-v0.6.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
