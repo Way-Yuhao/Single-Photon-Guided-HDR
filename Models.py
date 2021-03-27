@@ -346,9 +346,7 @@ class AttU_Net(nn.Module):
         e5 = self.Maxpool4(e4)
         e5 = self.Conv5(e5)
 
-        #print(x5.shape)
         d5 = self.Up5(e5)
-        #print(d5.shape)
         x4 = self.Att5(g=d5, x=e4)
         d5 = torch.cat((x4, d5), dim=1)
         d5 = self.Up_conv5(d5)
@@ -369,6 +367,7 @@ class AttU_Net(nn.Module):
         d2 = self.Up_conv2(d2)
 
         out = self.Conv(d2)
+        out = self.relu(out)
 
       #  out = self.active(out)
 

@@ -13,7 +13,8 @@ import time
 import warnings
 from tabulate import tabulate
 import matplotlib.pyplot as plt
-from Models import AttU_Net, U_Net
+# from Models import U_Net
+from lum_fusion_model import U_Net
 import customDataFolder
 from sequence_subset_sampler import SubsetSequenceSampler
 from radiance_writer import radiance_writer
@@ -449,8 +450,8 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v0.6.2"
-    param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
+    version = "-v0.7.0"
+    param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v0.6.2", epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = U_Net(in_ch=3, out_ch=3)
