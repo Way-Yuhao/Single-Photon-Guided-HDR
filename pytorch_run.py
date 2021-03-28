@@ -264,7 +264,7 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
     """
     dev_iter = iter(dev_loader)
     num_mini_batches = len(dev_iter)
-    net.eval()
+    # net.eval()
     output = None
     with torch.no_grad():
         running_loss = 0.0
@@ -278,7 +278,7 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
         dev_loss = running_loss / num_mini_batches
         print("val loss = {:.3f}".format(dev_loss))
         tb.add_scalar('loss/dev', dev_loss, epoch_idx)
-    net.train()
+    # net.train()
 
     sample_output = output[target_idx, :, :, :]
     return dev_loss, sample_output
@@ -417,14 +417,14 @@ def show_predictions(net, pre_trained_params_path):
     :return: None
     """
     global batch_size
-    target_idx = 310
+    target_idx = 435
     batch_size = 1
     print("testing on {} images".format(batch_size))
     load_network_weights(net, pre_trained_params_path)
     test_loader = load_hdr_data(input_path, spad_path, target_path)
     test_iter = iter(test_loader)
 
-    net.eval()
+    # net.eval()
     with torch.no_grad():
         input_, spad, target = select_example(test_iter, target_idx)
         output = net(input_, spad)
@@ -450,13 +450,13 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v0.7.1"
+    version = "-v0.7.3"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = LumFusionNet(img_ch=3, output_ch=3)
-    train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, pre_trained_params_path=param_to_load)
+    # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    show_predictions(net, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
