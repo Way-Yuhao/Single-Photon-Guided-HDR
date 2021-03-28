@@ -119,7 +119,8 @@ class LumFusionNet(nn.Module):
 
         self.Conv = nn.Conv2d(filters[0], output_ch, kernel_size=1, stride=1, padding=0)
 
-        self.SpadConv1 = nn.Conv2d(1, 4, kernel_size=2, stride=2, padding=0, bias=True)
+        self.SpadConv1 = nn.Conv2d(1, 1, kernel_size=1, stride=1, padding=0, bias=True)
+        self.SpadConv2 = nn.Conv2d(1, 4, kernel_size=2, stride=2, padding=0, bias=True)
 
     def forward(self, x, y):
 
@@ -137,7 +138,8 @@ class LumFusionNet(nn.Module):
         e5 = self.Maxpool4(e4)
         e5 = self.Conv5(e5)
 
-        y2 = self.SpadConv1(y)
+        y1 = self.SpadConv1(y)
+        y2 = self.SpadConv2(y1)
 
         d5 = self.Up5(e5)
         x4 = self.Att5(g=d5, x=e4)
@@ -146,7 +148,7 @@ class LumFusionNet(nn.Module):
 
         d4 = self.Up4(d5)
         x3 = self.Att4(g=d4, x=e3)
-        d4 = torch.cat((x3, d4, y), dim=1)
+        d4 = torch.cat((x3, d4, y1), dim=1)
         d4 = self.Up_conv4(d4)
 
         d3 = self.Up3(d4)
