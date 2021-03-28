@@ -171,6 +171,7 @@ class ImageFolder(VisionDataset):
         spad_sample = self.spad_transform(spad_sample)
         target_sample = self.target_transform(target_sample)
         input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
+        spad_sample = spad_sample[0, :, :].unsqueeze(dim=0)  # only keep one channel
         return input_sample, spad_sample, target_sample
 
     def check_files(self):

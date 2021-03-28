@@ -107,7 +107,7 @@ class LumFusionNet(nn.Module):
 
         self.Up4 = UpConv(filters[3], filters[2])
         self.Att4 = AttentionBlock(F_g=filters[2], F_l=filters[2], F_int=filters[1])
-        self.Up_conv4 = ConvBlock(filters[3] + 3, filters[2])
+        self.Up_conv4 = ConvBlock(filters[3] + 1, filters[2])
 
         self.Up3 = UpConv(filters[2], filters[1])
         self.Att3 = AttentionBlock(F_g=filters[1], F_l=filters[1], F_int=filters[0])
