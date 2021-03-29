@@ -164,12 +164,12 @@ def save_hdr(img, path):
     return
 
 
-
-def disp_plt(img, title="", tone_map=False):
+def disp_plt(img, title="", idx=None, tone_map=False):
     """
     :param img: image to display
     :param title: title of the figure
-    :param tone_map: applies tonemapping via cv2 if set to True
+    :param idx: index of the file, for print purposes
+    :param tone_map: applies tone mapping via cv2 if set to True
     :return: None
     """
     img = img.detach().clone()
@@ -184,6 +184,9 @@ def disp_plt(img, title="", tone_map=False):
         tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
         img = tonemapDrago.process(img)
     plt.imshow(img)
+    # compiling title
+    if idx:
+        title = "{} (index {})".format(title, idx)
     full_title = "{} / {} / tone mapping={}".format(version, title, tone_map)
     plt.title(full_title)
     plt.show()
@@ -436,10 +439,10 @@ def show_predictions(net, target_idx, pre_trained_params_path):
 
     print("loss at test time = ", loss.item())
 
-    disp_plt(img=input_, title="input", tone_map=True)
-    disp_plt(img=spad, title="spad", tone_map=True)
-    disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), tone_map=True)
-    disp_plt(img=target, title="target", tone_map=True)
+    disp_plt(img=input_, title="input", idx=target_idx, tone_map=True)
+    disp_plt(img=spad, title="spad", idx=target_idx, tone_map=True)
+    disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), idx=target_idx,tone_map=True)
+    disp_plt(img=target, title="target", idx=target_idx, tone_map=True)
 
     save_hdr(output, "./out_files/test_output{}_{}.hdr".format(version, target_idx))
     save_hdr(input_, "./out_files/test_input{}_{}.hdr".format(version, target_idx))
