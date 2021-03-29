@@ -413,7 +413,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     return
 
 
-def show_predictions(net, pre_trained_params_path):
+def show_predictions(net, target_idx, pre_trained_params_path):
     """
     displays and saves a select sample output
     :param net: pytorch object
@@ -421,7 +421,7 @@ def show_predictions(net, pre_trained_params_path):
     :return: None
     """
     global batch_size
-    target_idx = 435
+    # target_idx = 435
     batch_size = 1
     print("testing on {} images".format(batch_size))
     load_network_weights(net, pre_trained_params_path)
@@ -460,7 +460,7 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = LumFusionNet(img_ch=3, output_ch=3)
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=231, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
