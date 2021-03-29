@@ -60,7 +60,7 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=0, shuffle=False, sampler=sampler)
     return data_loader
 
 
@@ -173,7 +173,11 @@ def disp_plt(img, title="", tone_map=False):
     :return: None
     """
     img = img.detach().clone()
-    img = img.cpu().squeeze().permute(1, 2, 0)
+    if img.shape[1] == 3:  # RGB
+        img = img.cpu().squeeze().permute(1, 2, 0)
+    else:  # monochrome
+        img = img.cpu().squeeze()
+        img = torch.stack((img, img, img), dim=0).permute(1, 2, 0)
     img = np.float32(img)
     # img = img / img.max()  # normalize to [0, 1]
     if tone_map:
@@ -456,8 +460,8 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = LumFusionNet(img_ch=3, output_ch=3)
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    show_predictions(net, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
 
