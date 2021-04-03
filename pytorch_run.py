@@ -8,7 +8,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 # from Models import U_Net
-from lum_fusion_model import LumFusionNet
+from lum_fusion_model import LumFusionNet, IntensityGuidedHDRNet
 import customDataFolder
 from old.sequence_subset_sampler import SubsetSequenceSampler
 from radiance_writer import radiance_writer
@@ -451,14 +451,14 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v0.8.2"
+    version = "-v1.0.1"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
-    net = LumFusionNet(img_ch=3, output_ch=3)
+    net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=9, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=9, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     # flush_plt()
 

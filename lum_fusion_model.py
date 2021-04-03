@@ -1,8 +1,10 @@
 from __future__ import print_function, division
+import numpy as np
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data
-import torch
+import torchvision.models as models
 
 
 class ConvBlock(nn.Module):
@@ -30,6 +32,7 @@ class UpConv(nn.Module):
     """
     Up Convolution Block
     """
+
     def __init__(self, in_ch, out_ch):
         super(UpConv, self).__init__()
         self.up = nn.Sequential(
@@ -81,9 +84,10 @@ class AttentionBlock(nn.Module):
 
 class LumFusionNet(nn.Module):
     """
-    Attention Unet implementation
+    Attention U-Net implementation
     Paper: https://arxiv.org/abs/1804.03999
     """
+
     def __init__(self, img_ch=3, output_ch=1):
         super(LumFusionNet, self).__init__()
 
@@ -123,7 +127,6 @@ class LumFusionNet(nn.Module):
         self.SpadConv2 = nn.Conv2d(1, 4, kernel_size=2, stride=2, padding=0, bias=True)
 
     def forward(self, x, y):
-
         e1 = self.Conv1(x)
 
         e2 = self.Maxpool1(e1)
@@ -165,5 +168,108 @@ class LumFusionNet(nn.Module):
         out = F.relu(out)
 
         return out
+
+
+class ConvLayer(nn.Module):
+    """
+    Convolution Block
+    """
+
+    def __init__(self, in_ch, out_ch):
+        super(ConvLayer, self).__init__()
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2))
+
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
+
+class DeConvLayer(nn.Module):
+
+    def __init__(self, in_ch, out_ch, f=3, d=1):
+        super(DeConvLayer, self).__init__()
+        self.de = nn.Sequential(
+            nn.Conv2d(in_ch, in_ch, kernel_size=1, bias=True),
+            nn.ConvTranspose2d(in_ch, out_ch, kernel_size=f, dilation=d, bias=True),
+            nn.InstanceNorm2d(out_ch),
+            nn.ReLU(inplace=True))  # at discretion
+
+    def forward(self, d, y=None, e=None):
+        """
+        :param d: activation from previous de-conv layer
+        :param y: encoded/unencoded SPAD tensor
+        :param e: activation from long-skip connections
+        :return:
+        """
+        if e is not None:
+            d = torch.cat((e, d), dim=1)
+        if y is not None:
+            d = torch.cat((d, y), dim=1)
+        out = self.de(d)
+        return out
+
+
+class IntensityGuidedHDRNet(nn.Module):
+    def __init__(self):
+        super(IntensityGuidedHDRNet, self).__init__()
+        n1 = 64
+        #                    0    1    2    3    4    5     6
+        main_chs = np.array([3,  64, 128, 256, 512, 512, 1024])
+        side_chs = np.array([-1,  1,   4,  16,  64, 128,   -1])
+
+        # encoder (VGG16 + extra Conv layer)
+        self.vgg16 = models.vgg16(pretrained=True)
+        encoded_features = list(self.vgg16.features)
+        self.encoded_features = nn.ModuleList(encoded_features).eval()
+        self.Conv6 = ConvLayer(in_ch=main_chs[5], out_ch=main_chs[6])
+
+        # decoder
+        self.DeConv6 = DeConvLayer(in_ch=main_chs[6], out_ch=main_chs[5])
+        self.DeConv5 = DeConvLayer(in_ch=2 * main_chs[5] + side_chs[5], out_ch=main_chs[4])
+        self.DeConv4 = DeConvLayer(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3])
+        self.DeConv3 = DeConvLayer(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2])
+        self.DeConv2 = DeConvLayer(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1])
+
+
+        # spad encoder
+        self.SpadConv2 = nn.Conv2d(side_chs[1], side_chs[2], kernel_size=1, stride=1, padding=0, bias=True)
+        self.SpadConv3 = nn.Conv2d(side_chs[2], side_chs[3], kernel_size=2, stride=2, padding=0, bias=True)
+        self.SpadConv4 = nn.Conv2d(side_chs[3], side_chs[4], kernel_size=2, stride=2, padding=0, bias=True)
+        self.SpadConv5 = nn.Conv2d(side_chs[4], side_chs[5], kernel_size=2, stride=2, padding=0, bias=True)
+
+
+    def forward(self, x, y):
+        # encoder
+        encodings = []
+        e = x
+        for ii, model in enumerate(self.encoded_features):
+            e = model(e)
+            if ii in {4, 9, 16, 23, 30}:
+                encodings.append(e)
+        e1, e2, e3, e4, e5 = encodings
+        e6 = self.Conv6(e5)
+
+        # spad encoder
+        y2 = self.SpadConv2(y)
+        y3 = self.SpadConv3(y2)
+        y4 = self.SpadConv4(y3)
+        y5 = self.SpadConv5(y4)
+
+        # decoder
+        d5 = self.DeConv6(e6)
+
+        print(d5.shape)
+        assert(0)
+
+        d4 = self.DeConv5(d5, y5, e5)
+        d3 = self.DeConv4(d4, y4, e4)
+        d2 = self.DeConv3(d3, y3, e3)
+        d1 = self.DeConv2(d2, y2, e2)
 
 
