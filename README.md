@@ -28,6 +28,8 @@ Install all dependent libraries:
   pip install -r requirements.txt
   ```
 
+## TODOs
+[] Merging just G channel
 
 ## Acknowledgement
 The deep learning part of this work is partially based on https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets.git
