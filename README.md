@@ -33,7 +33,7 @@ With Layer Visualization
 Clone the repo:
 
   ```bash
-  git clone https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets.git
+  git clone https://github.com/Way-Yuhao/Single-Photon-Guided-HDR.git
   ```
 
 ## 2. Requirements
@@ -55,100 +55,9 @@ Install all dependent libraries:
   ```bash
   pip install -r requirements.txt
   ```
-## 3. Run the file
 
-Add all your folders to this line 106-113
-```
-t_data = '' # Input data
-l_data = '' #Input Label
-test_image = '' #Image to be predicted while training
-test_label = '' #Label of the prediction Image
-test_folderP = '' #Test folder Image
-test_folderL = '' #Test folder Label for calculating the Dice score
- ```
- 
-  ## 4. Types of Unet
-  
-  **Unet**
-  ![unet1](/images/unet1.png)
-  
-  **RCNN Unet**
-  ![r2unet](/images/r2unet.png)
-  
-  
-  **Attention Unet**
-  ![att-unet](/images/att-unet.png)
-  
-  
-  **Attention-RCNN Unet**
-  ![att-r2u](/images/att-r2u.png)
-  
-  
-  **Nested Unet**
-  
-  ![nested](/images/nested.jpg)
 
-## 5. Visualization
-
-To plot the loss , Visdom would be required. The code is already written, just uncomment the required part.
-Gradient flow can be used too. Taken from (https://discuss.pytorch.org/t/check-gradient-flow-in-network/15063/10)
-
-A model folder is created and all the data is stored inside that.
-Last layer will be saved in the model folder. If any particular layer is required , mention it in the line 361.
-
-**Layer Visulization**
-
-![l2](/images/l2.png)
-
-**Filter Visulization**
-
-![filt1](/images/filt1.png)
-
-**TensorboardX**
-Still have to tweak some parameters to get visualization. Have messed up this trying to make pytorch 1.1.0 working with tensorboard directly (and then came to know Currently it doesn't support anything apart from linear graphs)
-<img src="https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets/blob/master/images/tensorb.png" width="280">
-
-**Input Image Visulization for checking**
-
-**a) Original Image**
-
-<img src="https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets/blob/master/images/in1.png" width="480">
-
-**b) CenterCrop Image**
-
-<img src="https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets/blob/master/images/in2.png" width="480">
-
-## 6. Results
-
-**Dice Score for hippocampus segmentation**
-ADNI-LONI Dataset
-
-<img src="https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets/blob/master/dice.png" width="380">
-
-## 7. Citation
-
-If you find it usefull for your work. 
-```
-@article{DBLP:journals/corr/abs-1906-07160,
-  author    = {Malav Bateriwala and
-               Pierrick Bourgeat},
-  title     = {Enforcing temporal consistency in Deep Learning segmentation of brain
-               {MR} images},
-  journal   = {CoRR},
-  volume    = {abs/1906.07160},
-  year      = {2019},
-  url       = {http://arxiv.org/abs/1906.07160},
-  archivePrefix = {arXiv},
-  eprint    = {1906.07160},
-  timestamp = {Mon, 24 Jun 2019 17:28:45 +0200},
-  biburl    = {https://dblp.org/rec/bib/journals/corr/abs-1906-07160},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
-}
-```
-
-## 8. Blog about different Unets
-```
-In progress
-```
+## Acknowledgement
+The deep learning part of this work is partially based on https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets.git
 
 
