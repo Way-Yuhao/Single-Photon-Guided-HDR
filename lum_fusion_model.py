@@ -190,13 +190,17 @@ class ConvLayer(nn.Module):
         return x
 
 
-class DeConvLayer(nn.Module):
+class DeConvBlock(nn.Module):
 
-    def __init__(self, in_ch, out_ch, f=3, d=1):
-        super(DeConvLayer, self).__init__()
+    def __init__(self, in_ch, out_ch, output_size, f=3):
+        super(DeConvBlock, self).__init__()
+
+        de_conv_temp = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=f, stride=2, padding=1)
+        de_conv_layer = DeConvLayer2X(de_conv_temp, output_size=output_size)
+
         self.de = nn.Sequential(
             nn.Conv2d(in_ch, in_ch, kernel_size=1, bias=True),
-            nn.ConvTranspose2d(in_ch, out_ch, kernel_size=f, dilation=d, bias=True),
+            de_conv_layer,
             nn.InstanceNorm2d(out_ch),
             nn.ReLU(inplace=True))  # at discretion
 
@@ -215,13 +219,26 @@ class DeConvLayer(nn.Module):
         return out
 
 
+class DeConvLayer2X(nn.Module):
+
+    def __init__(self, conv, output_size):
+        super(DeConvLayer2X, self).__init__()
+        self.output_size = output_size
+        self.conv = conv
+
+    def forward(self, x):
+        x = self.conv(x, output_size=self.output_size)
+        return x
+
+
 class IntensityGuidedHDRNet(nn.Module):
     def __init__(self):
         super(IntensityGuidedHDRNet, self).__init__()
         n1 = 64
-        #                    0    1    2    3    4    5     6
-        main_chs = np.array([3,  64, 128, 256, 512, 512, 1024])
-        side_chs = np.array([-1,  1,   4,  16,  64, 128,   -1])
+        # layer depth #      0    1    2    3    4    5     6
+        main_chs = np.array([3,  64, 128, 256, 512, 512, 1024])   # number of output channels for main encoder
+        side_chs = np.array([-1,  1,   4,  16,  64, 128,   -1])   # number of output channels for side encoder
+        h =       np.array([128, 64,  32,  16,   8,   4,    2])   # height of tensors
 
         # encoder (VGG16 + extra Conv layer)
         self.vgg16 = models.vgg16(pretrained=True)
@@ -230,19 +247,17 @@ class IntensityGuidedHDRNet(nn.Module):
         self.Conv6 = ConvLayer(in_ch=main_chs[5], out_ch=main_chs[6])
 
         # decoder
-        self.DeConv6 = DeConvLayer(in_ch=main_chs[6], out_ch=main_chs[5])
-        self.DeConv5 = DeConvLayer(in_ch=2 * main_chs[5] + side_chs[5], out_ch=main_chs[4])
-        self.DeConv4 = DeConvLayer(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3])
-        self.DeConv3 = DeConvLayer(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2])
-        self.DeConv2 = DeConvLayer(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1])
-
+        self.DeConv6 = DeConvBlock(in_ch=main_chs[6], out_ch=main_chs[5], output_size=(h[5], h[5] * 2))
+        self.DeConv5 = DeConvBlock(in_ch=2 * main_chs[5] + side_chs[5], out_ch=main_chs[4], output_size=(h[4], h[4] * 2))
+        self.DeConv4 = DeConvBlock(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3], output_size=(h[3], h[3] * 2))
+        self.DeConv3 = DeConvBlock(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2], output_size=(h[2], h[2] * 2))
+        self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1], output_size=(h[1], h[1] * 2))
 
         # spad encoder
         self.SpadConv2 = nn.Conv2d(side_chs[1], side_chs[2], kernel_size=1, stride=1, padding=0, bias=True)
         self.SpadConv3 = nn.Conv2d(side_chs[2], side_chs[3], kernel_size=2, stride=2, padding=0, bias=True)
         self.SpadConv4 = nn.Conv2d(side_chs[3], side_chs[4], kernel_size=2, stride=2, padding=0, bias=True)
         self.SpadConv5 = nn.Conv2d(side_chs[4], side_chs[5], kernel_size=2, stride=2, padding=0, bias=True)
-
 
     def forward(self, x, y):
         # encoder
@@ -263,13 +278,12 @@ class IntensityGuidedHDRNet(nn.Module):
 
         # decoder
         d5 = self.DeConv6(e6)
-
-        print(d5.shape)
-        assert(0)
-
         d4 = self.DeConv5(d5, y5, e5)
         d3 = self.DeConv4(d4, y4, e4)
         d2 = self.DeConv3(d3, y3, e3)
         d1 = self.DeConv2(d2, y2, e2)
+
+        # final encodings
+
 
 
