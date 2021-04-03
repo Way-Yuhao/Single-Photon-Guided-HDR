@@ -460,7 +460,7 @@ def main():
     show_predictions(net, target_idx=9, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
-    flush_plt()
+    # flush_plt()
 
 
 if __name__ == "__main__":
