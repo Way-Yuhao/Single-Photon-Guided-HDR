@@ -9,10 +9,10 @@ import torchvision.models as models
 
 class ConvBlock(nn.Module):
     """
-    Convolution Block
+    Convolution Block without BatchNorm
     """
 
-    def __init__(self, in_ch, out_ch):
+    def __init__(self, in_ch, out_ch, f,):
         super(ConvBlock, self).__init__()
 
         self.conv = nn.Sequential(
@@ -250,7 +250,8 @@ class DeConvLayer(nn.Module):
 class IntensityGuidedHDRNet(nn.Module):
     def __init__(self):
         super(IntensityGuidedHDRNet, self).__init__()
-        n1 = 64
+
+        """Up Sampling and Luminance Fusion Network"""
         # layer depth #      0    1    2    3    4    5     6
         main_chs = np.array([3,  64, 128, 256, 512, 512, 1024])   # number of output channels for main encoder
         side_chs = np.array([-1,  1,   4,  16,  64, 128,   -1])   # number of output channels for side encoder
@@ -282,6 +283,13 @@ class IntensityGuidedHDRNet(nn.Module):
 
         # final encoders
         self.ConvOut = OneByOneConvBlock(in_ch=2 * main_chs[0], out_ch=1)
+
+        """Chrominance Compensation Network"""
+        #                     0    1   2    3
+        chroma_chs = np.array([3, 16, 64, 128])
+        self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
+
+
 
     def forward(self, x, y):
         # encoder
