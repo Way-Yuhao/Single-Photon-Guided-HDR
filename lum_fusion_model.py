@@ -250,7 +250,6 @@ class DeConvLayer(nn.Module):
 class IntensityGuidedHDRNet(nn.Module):
     def __init__(self):
         super(IntensityGuidedHDRNet, self).__init__()
-
         """Up Sampling and Luminance Fusion Network"""
         # layer depth #      0    1    2    3    4    5     6
         main_chs = np.array([3,  64, 128, 256, 512, 512, 1024])   # number of output channels for main encoder
@@ -283,13 +282,6 @@ class IntensityGuidedHDRNet(nn.Module):
 
         # final encoders
         self.ConvOut = OneByOneConvBlock(in_ch=2 * main_chs[0], out_ch=1)
-
-        """Chrominance Compensation Network"""
-        #                     0    1   2    3
-        chroma_chs = np.array([3, 16, 64, 128])
-        self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
-
-
 
     def forward(self, x, y):
         # encoder
