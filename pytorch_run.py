@@ -167,6 +167,10 @@ def disp_plt(img, title="", idx=None, tone_map=False):
     :return: None
     """
     img = img.detach().clone()
+
+    if len(img.shape) == 3:
+        img = img.unsqueeze(0)
+
     if img.shape[1] == 3:  # RGB
         img = img.cpu().squeeze().permute(1, 2, 0)
     else:  # monochrome
@@ -385,8 +389,6 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
         for _ in tqdm(range(num_mini_batches)):
             input_, spad, target = train_iter.next()
             input_, spad, target = input_.to(device), spad.to(device), target.to(device)
-            target = target.to(device)
-
             optimizer.zero_grad()
             output = net(input_, spad)
             loss = compute_l1_loss(output, target)
