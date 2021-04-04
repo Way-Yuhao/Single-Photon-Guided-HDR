@@ -270,6 +270,10 @@ class IntensityGuidedHDRNet(nn.Module):
         self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1], output_size=(h[1], h[1] * 2))
         self.DeConv1 = DeConvBlock(in_ch=2 * main_chs[1], out_ch=main_chs[0], output_size=(h[0], h[0] * 2))
 
+        # attention gates
+        self.Att1 = AttentionBlock(F_g=main_chs[1], F_l=main_chs[1], F_int=main_chs[0])
+        self.Att0 = AttentionBlock(F_g=main_chs[0], F_l=main_chs[0], F_int=1)
+
         # spad encoder
         self.SpadConv2 = nn.Conv2d(side_chs[1], side_chs[2], kernel_size=1, stride=1, padding=0, bias=True)
         self.SpadConv3 = nn.Conv2d(side_chs[2], side_chs[3], kernel_size=2, stride=2, padding=0, bias=True)
@@ -302,11 +306,12 @@ class IntensityGuidedHDRNet(nn.Module):
         d3 = self.DeConv4(d4, y4, e4)
         d2 = self.DeConv3(d3, y3, e3)
         d1 = self.DeConv2(d2, y2, e2)
-        d0 = self.DeConv1(d1, e1)
+        e1_att = self.Att1(g=d1, x=e1)
+        d0 = self.DeConv1(d1, e1_att)
 
         # final encodings
-
-        out = self.ConvOut(d0, x)
+        x_att = self.Att0(g=d0, x=x)
+        out = self.ConvOut(d0, x_att)
 
         out = torch.cat((out, out, out), dim=1)  # TODO: remove this later
         return out
