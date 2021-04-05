@@ -313,10 +313,10 @@ class IntensityGuidedHDRNet(nn.Module):
 
     def forward(self, x, y):
         # split color channels
-        x_b, x_g, x_r = _split_chs(x)
+        # x_b, x_g, x_r = _split_chs(x)
         # encoder
         encodings = []
-        e = x_g
+        e = x
         for ii, model in enumerate(self.encoded_features):
             e = model(e)
             if ii in {4, 9, 16, 23, 30}:
@@ -340,9 +340,9 @@ class IntensityGuidedHDRNet(nn.Module):
         d0 = self.DeConv1(d1, e1_att)
 
         # final encodings
-        x_att = self.Att0(g=d0, x=x_g)
+        x_att = self.Att0(g=d0, x=x)
         out = self.ConvOut(d0, x_att)
 
-        bgr = _stack_chs(x_b, out, x_r)
+        # bgr = _stack_chs(x_b, out, x_r)
         out = torch.cat((out, out, out), dim=1)  # TODO: remove this later
         return out
