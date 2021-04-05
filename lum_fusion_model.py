@@ -247,6 +247,26 @@ class DeConvLayer(nn.Module):
         return x
 
 
+def _split_chs(img):
+    """
+
+    :param img: tensor of shape (m, 3, h, w)
+    :return: b, g, r
+    """
+    b = img[:, 0, :, :].unsqueeze(1)
+    g = img[:, 1, :, :].unsqueeze(1)
+    r = img[:, 2, :, :].unsqueeze(1)
+    return b, g, r
+
+
+def _stack_chs(b, g, r):
+    b = b.squeeze()
+    g = g.squeeze()
+    r = r.squeeze()
+    out = torch.stack((b, g, r), dim=1)
+    return out
+
+
 class IntensityGuidedHDRNet(nn.Module):
     def __init__(self):
         super(IntensityGuidedHDRNet, self).__init__()
@@ -286,15 +306,17 @@ class IntensityGuidedHDRNet(nn.Module):
 
         """Chrominance Compensation Network"""
         #                     0    1   2    3
-        chroma_chs = np.array([3, 16, 64, 128])
-        self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
+        # chroma_chs = np.array([3, 16, 64, 128])
+        # self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
 
 
 
     def forward(self, x, y):
+        # split color channels
+        x_b, x_g, x_r = _split_chs(x)
         # encoder
         encodings = []
-        e = x
+        e = x_g
         for ii, model in enumerate(self.encoded_features):
             e = model(e)
             if ii in {4, 9, 16, 23, 30}:
@@ -318,9 +340,9 @@ class IntensityGuidedHDRNet(nn.Module):
         d0 = self.DeConv1(d1, e1_att)
 
         # final encodings
-        x_att = self.Att0(g=d0, x=x)
+        x_att = self.Att0(g=d0, x=x_g)
         out = self.ConvOut(d0, x_att)
 
+        bgr = _stack_chs(x_b, out, x_r)
         out = torch.cat((out, out, out), dim=1)  # TODO: remove this later
         return out
-
