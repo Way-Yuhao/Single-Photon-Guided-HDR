@@ -213,7 +213,6 @@ class DeConvBlock(nn.Module):
 
         # de_conv_temp = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=f, stride=2, padding=1)
         # de_conv_layer = DeConvLayer(de_conv_temp, output_size=output_size)
-
         de_conv_layer = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=4, stride=2, padding=1)
 
         self.de = nn.Sequential(

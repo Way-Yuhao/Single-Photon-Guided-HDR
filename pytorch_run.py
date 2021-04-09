@@ -54,7 +54,7 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=0, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
 
 
@@ -453,14 +453,14 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v1.1.1"
+    version = "-v1.2.6"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     # flush_plt()
 
