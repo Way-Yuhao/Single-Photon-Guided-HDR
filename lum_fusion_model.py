@@ -283,7 +283,7 @@ class ResNet(nn.Module):
         # self.conv = conv3x3(3, 16)
         # self.bn = nn.BatchNorm2d(16)
         # self.relu = nn.ReLU(inplace=True)
-        self.layer1 = self.make_layer(block, 3, num_blks)
+        self.layer1 = self.make_layer(block, 128, num_blks)
         # self.layer2 = self.make_layer(block, 32, layers[1], 2)
         # self.layer3 = self.make_layer(block, 64, layers[2], 2)
 
@@ -399,8 +399,8 @@ class IntensityGuidedHDRNet(nn.Module):
         ce1 = self.ChromaConv1(stacked)
         ce2 = self.ChromaConv2(ce1)
         ce3 = self.ChromaConv3(ce2)
-        # cres = self.ResNet(ce3)
-        cd3 = self.ChromaDeConv3(ce3)
+        cres = self.ResNet(ce3)
+        cd3 = self.ChromaDeConv3(cres)
         cd2 = self.ChromaDeConv2(cd3)
         cd1 = self.ChromaDeConv1(cd2)
         return cd1
