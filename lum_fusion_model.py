@@ -287,8 +287,8 @@ class IntensityGuidedHDRNet(nn.Module):
 
         """Chrominance Compensation Network"""
         #                     0    1   2    3
-        chroma_chs = np.array([3, 16, 64, 128])
-        self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
+        # chroma_chs = np.array([3, 16, 64, 128])
+        # self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
 
 
 
