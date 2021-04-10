@@ -295,6 +295,18 @@ class ResNet(nn.Module):
             layers.append(block(out_channels, out_channels))
         return nn.Sequential(*layers)
 
+    def forward(self, x):
+        # out = self.conv(x)
+        # out = self.bn(out)
+        # out = self.relu(out)
+        out = self.layer1(x)  # switch to out if necessary
+        # out = self.layer2(out)
+        # out = self.layer3(out)
+        # out = self.avg_pool(out)
+        # out = out.view(out.size(0), -1)
+        # out = self.fc(out)
+        return out
+
 
 class IntensityGuidedHDRNet(nn.Module):
     def __init__(self):
@@ -344,11 +356,11 @@ class IntensityGuidedHDRNet(nn.Module):
         self.ChromaDeConv2 = DeConvBlock(in_ch=chroma_chs[2], out_ch=chroma_chs[1])
         self.ChromaDeConv1 = DeConvBlock(in_ch=chroma_chs[1], out_ch=chroma_chs[0])
 
-
-
     def forward(self, x, y):
         # split color channels
         x_b, x_g, x_r = x[:, 0, :, :].unsqueeze(1), x[:, 1, :, :].unsqueeze(1), x[:, 2, :, :].unsqueeze(1),
+
+        """Up Sampling and Luminance Fusion Network"""
 
         # encoder
         encodings = []
@@ -381,6 +393,15 @@ class IntensityGuidedHDRNet(nn.Module):
         out = self.ConvOut(d0, x_att)
 
         # out = torch.cat((out, out, out), dim=1)  # TODO: remove this later
-        out = torch.cat((x_b, out, x_r), dim=1)
-        return out
+        stacked = torch.cat((x_b, out, x_r), dim=1)
+
+        """Chrominance Compensation Network"""
+        ce1 = self.ChromaConv1(stacked)
+        ce2 = self.ChromaConv2(ce1)
+        ce3 = self.ChromaConv3(ce2)
+        # cres = self.ResNet(ce3)
+        cd3 = self.ChromaDeConv3(ce3)
+        cd2 = self.ChromaDeConv2(cd3)
+        cd1 = self.ChromaDeConv1(cd2)
+        return cd1
 
