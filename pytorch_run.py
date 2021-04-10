@@ -453,7 +453,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v1.4.0"
+    version = "-v1.4.1"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v1.2.6", epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
