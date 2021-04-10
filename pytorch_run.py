@@ -437,7 +437,7 @@ def show_predictions(net, target_idx, pre_trained_params_path):
 
     disp_plt(img=input_, title="input", idx=target_idx, tone_map=True)
     disp_plt(img=spad, title="spad", idx=target_idx, tone_map=True)
-    disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), idx=target_idx,tone_map=True)
+    disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), idx=target_idx, tone_map=True)
     disp_plt(img=target, title="target", idx=target_idx, tone_map=True)
 
     save_hdr(output, "./out_files/test_output{}_{}.hdr".format(version, target_idx))
@@ -459,8 +459,8 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     # flush_plt()
 
