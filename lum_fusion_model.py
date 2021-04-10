@@ -208,7 +208,7 @@ class OneByOneConvBlock(nn.Module):
 
 class DeConvBlock(nn.Module):
 
-    def __init__(self, in_ch, out_ch, output_size, f=3):
+    def __init__(self, in_ch, out_ch, f=3):
         super(DeConvBlock, self).__init__()
 
         # de_conv_temp = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=f, stride=2, padding=1)
@@ -265,12 +265,12 @@ class IntensityGuidedHDRNet(nn.Module):
         self.Conv6 = ConvLayer(in_ch=main_chs[5], out_ch=main_chs[6])
 
         # decoder
-        self.DeConv6 = DeConvBlock(in_ch=main_chs[6], out_ch=main_chs[5], output_size=(h[5], h[5] * 2))
-        self.DeConv5 = DeConvBlock(in_ch=2 * main_chs[5] + side_chs[5], out_ch=main_chs[4], output_size=(h[4], h[4] * 2))
-        self.DeConv4 = DeConvBlock(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3], output_size=(h[3], h[3] * 2))
-        self.DeConv3 = DeConvBlock(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2], output_size=(h[2], h[2] * 2))
-        self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1], output_size=(h[1], h[1] * 2))
-        self.DeConv1 = DeConvBlock(in_ch=2 * main_chs[1], out_ch=main_chs[0], output_size=(h[0], h[0] * 2))
+        self.DeConv6 = DeConvBlock(in_ch=main_chs[6], out_ch=main_chs[5])
+        self.DeConv5 = DeConvBlock(in_ch=2 * main_chs[5] + side_chs[5], out_ch=main_chs[4])
+        self.DeConv4 = DeConvBlock(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3])
+        self.DeConv3 = DeConvBlock(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2])
+        self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1])
+        self.DeConv1 = DeConvBlock(in_ch=2 * main_chs[1], out_ch=main_chs[0])
 
         # attention gates
         self.Att1 = AttentionBlock(F_g=main_chs[1], F_l=main_chs[1], F_int=main_chs[0])
@@ -287,15 +287,25 @@ class IntensityGuidedHDRNet(nn.Module):
 
         """Chrominance Compensation Network"""
         #                     0    1   2    3
-        # chroma_chs = np.array([3, 16, 64, 128])
-        # self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
+        chroma_chs = np.array([3, 16, 64, 128])
+        self.ChromaConv1 = ConvLayer(in_ch=chroma_chs[0], out_ch=chroma_chs[1])
+        self.ChromaConv2 = ConvLayer(in_ch=chroma_chs[1], out_ch=chroma_chs[2])
+        self.ChromaConv3 = ConvLayer(in_ch=chroma_chs[2], out_ch=chroma_chs[3])
+
+        self.ChromaDeConv3 = DeConvBlock(in_ch=chroma_chs[3], out_ch=chroma_chs[2])
+        self.ChromaDeConv2 = DeConvBlock(in_ch=chroma_chs[2], out_ch=chroma_chs[1])
+        self.ChromaDeConv1 = DeConvBlock(in_ch=chroma_chs[1], out_ch=chroma_chs[0])
 
 
 
     def forward(self, x, y):
+        # split color channels
+        x_b, x_g, x_r = x[:, 0, :, :].unsqueeze(1), x[:, 1, :, :].unsqueeze(1), x[:, 2, :, :].unsqueeze(1),
+
         # encoder
         encodings = []
-        e = x
+        e = torch.cat((x_g, x_g, x_g), dim=1)
+        e_temp = e
         for ii, model in enumerate(self.encoded_features):
             e = model(e)
             if ii in {4, 9, 16, 23, 30}:
@@ -319,9 +329,10 @@ class IntensityGuidedHDRNet(nn.Module):
         d0 = self.DeConv1(d1, e1_att)
 
         # final encodings
-        x_att = self.Att0(g=d0, x=x)
+        x_att = self.Att0(g=d0, x=e_temp)
         out = self.ConvOut(d0, x_att)
 
-        out = torch.cat((out, out, out), dim=1)  # TODO: remove this later
+        # out = torch.cat((out, out, out), dim=1)  # TODO: remove this later
+        out = torch.cat((x_b, out, x_r), dim=1)
         return out
 

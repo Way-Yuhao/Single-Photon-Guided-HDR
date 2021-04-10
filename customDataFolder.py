@@ -174,10 +174,10 @@ class ImageFolder(VisionDataset):
         spad_sample = spad_sample[1, :, :].unsqueeze(dim=0)  # only keep one channel
 
         # TODO: remove this (monochrome)
-        input_sample = input_sample[1, :, :]
-        input_sample = torch.stack((input_sample, input_sample, input_sample), dim=0)
-        target_sample = target_sample[1, :, :]
-        target_sample = torch.stack((target_sample, target_sample, target_sample), dim=0)
+        # input_sample = input_sample[1, :, :]
+        # input_sample = torch.stack((input_sample, input_sample, input_sample), dim=0)
+        # target_sample = target_sample[1, :, :]
+        # target_sample = torch.stack((target_sample, target_sample, target_sample), dim=0)
 
         return input_sample, spad_sample, target_sample
 
