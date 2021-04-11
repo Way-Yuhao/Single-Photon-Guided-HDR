@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.tensorboard import SummaryWriter
+import torchvision
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 # from Models import U_Net
@@ -302,6 +303,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     print_params()  # print hyper parameters
     net.to(device)
     net.train()
+    partial_freeze(net)
     if load_weights:
         load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
@@ -446,6 +448,30 @@ def show_predictions(net, target_idx, pre_trained_params_path):
     return
 
 
+def partial_freeze(net):
+    idx = 0
+    for param in net.parameters():
+        param.requires_grad = False
+        if idx >= 95:
+            break
+        else:
+            idx += 1
+
+
+def test(net, device, tb, load_weights, pre_trained_params_path):
+    net.to(device)
+    net.train()
+    if load_weights:
+        load_network_weights(net, pre_trained_params_path)
+    train_loader = load_hdr_data(input_path, spad_path, target_path)
+    print(len(list(net.parameters())))
+
+    vgg16 = torchvision.models.vgg16(pretrained=True)
+    encoded_features = list(vgg16.features)
+    print(len(encoded_features))
+    print(len(list(vgg16.parameters())))
+
+
 def main():
     """
     main function
@@ -453,14 +479,16 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v1.5.0"
+    version = "-v1.6.1"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v1.2.6", epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=True, pre_trained_params_path=param_to_load)
     show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=True, pre_trained_params_path=param_to_load)
+    # test(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    partial_freeze(net)
     tb.close()
     flush_plt()
 

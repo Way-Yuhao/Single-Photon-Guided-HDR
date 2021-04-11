@@ -399,8 +399,8 @@ class IntensityGuidedHDRNet(nn.Module):
         ce1 = self.ChromaConv1(stacked)
         ce2 = self.ChromaConv2(ce1)
         ce3 = self.ChromaConv3(ce2)
-        cres = self.ResNet(ce3)
-        cd3 = self.ChromaDeConv3(cres)
+        # cres = self.ResNet(ce3)
+        cd3 = self.ChromaDeConv3(ce3)
         cd2 = self.ChromaDeConv2(cd3)
         cd1 = self.ChromaDeConv1(cd2)
         return cd1
