@@ -265,10 +265,10 @@ class ResidualBlock(nn.Module):
     def forward(self, x):
         residual = x
         out = self.conv1(x)
-        out = self.bn1(out)
+        # out = self.bn1(out)
         out = self.relu(out)
         out = self.conv2(out)
-        out = self.bn2(out)
+        # out = self.bn2(out)
         if self.downsample:
             residual = self.downsample(x)
         out += residual
