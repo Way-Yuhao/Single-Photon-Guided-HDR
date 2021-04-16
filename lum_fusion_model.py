@@ -311,7 +311,6 @@ class IntensityGuidedHDRNet(nn.Module):
         # self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
 
 
-
     def forward(self, x, y):
         # split color channels
         # x_b, x_g, x_r = _split_chs(x)

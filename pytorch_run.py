@@ -453,16 +453,16 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v1.2.6"
+    version = "-v1.2.7"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
-    # flush_plt()
+    flush_plt()
 
 
 if __name__ == "__main__":
