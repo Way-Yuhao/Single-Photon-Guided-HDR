@@ -17,7 +17,7 @@ plt_path = "../simulated_outputs/plt/"
 
 """SPAD parameters"""
 SPAD_Sim = None
-SPAD_on = True             # toggle on to enable SPAD simulator
+SPAD_on = False             # toggle on to enable SPAD simulator
 SPAD_mono = True          # if the sensor is monochromatic
 SPAD_T = .01               # exposure time in seconds
 SPAD_gain = 10             # uniform gain applied to the analog signal
@@ -27,10 +27,11 @@ SPAD_qe = .4               # quantum efficiency index
 
 """CMOS parameters"""
 CMOS_Sim = None
-CMOS_on = False              # toggle on to enable CMOS simulator
+CMOS_on = True              # toggle on to enable CMOS simulator
 CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
-CMOS_T = .01                # exposure time in seconds
+# CMOS_T = .01                # exposure time in seconds
+CMOS_T = .005                # exposure time in seconds
 CMOS_gain = 100             # uniform gain applied to the analog signal
 CMOS_down_sample_rate = 4   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
