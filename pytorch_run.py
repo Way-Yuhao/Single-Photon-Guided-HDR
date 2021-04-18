@@ -108,7 +108,7 @@ def tone_map(output, target):
     :param target: label tensor
     :return: tone-mapped output and target tensors
     """
-    mu = 5000  # amount of compression
+    mu = 2000  # amount of compression
     output = torch.log(1 + mu * output) / np.log(1 + mu)
     target = torch.log(1 + mu * target) / np.log(1 + mu)
     return output, target
@@ -453,7 +453,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.0.2"
+    version = "-v2.0.3"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.0.1", epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
