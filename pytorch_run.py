@@ -178,6 +178,7 @@ def disp_plt(img, title="", idx=None, tone_map=False):
         img = torch.stack((img, img, img), dim=0).permute(1, 2, 0)
     img = np.float32(img)
     # img = img / img.max()  # normalize to [0, 1]
+    # img = median_filter(img)
     if tone_map:
         tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
         img = tonemapDrago.process(img)
@@ -254,6 +255,15 @@ def disp_sample(input_, spad, output, target, idx=0, msg=""):
         disp_plt(target[idx, :, :, :], title=msg + " / target", tone_map=True)
     flush_plt()
     return
+
+
+def median_filter(img):
+    """
+    applies median filter to an image tensor
+    :param img: numpy image array of shape (h, w, 3)
+    :return: median filtered image tensor
+    """
+    return cv2.medianBlur(img, 3)
 
 
 def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
@@ -459,7 +469,7 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=231, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=1, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
