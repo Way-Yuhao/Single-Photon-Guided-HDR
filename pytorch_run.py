@@ -16,9 +16,9 @@ from radiance_writer import radiance_writer
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 train_param_path = "./model/unet/"
-input_path = "../data/hdri_437_256x128/CMOS/"
-target_path = "../data/hdri_437_256x128/ideal/"
-spad_path = "../data/hdri_437_256x128/SPAD_RGB/"
+input_path = "../data/hdri_437_256x128_bl/CMOS/"
+target_path = "../data/hdri_437_256x128_bl/ideal/"
+spad_path = "../data/hdri_437_256x128_bl/SPAD_RGB/"
 down_sp_rate = 1  # down sample rate
 
 """Hyper Parameters"""
@@ -463,14 +463,14 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.0.3"
+    version = "-v2.1.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=1, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=66, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     flush_plt()
 
