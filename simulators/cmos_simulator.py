@@ -20,8 +20,11 @@ class CMOSSimulator(object):
 
     def down_sample_flux(self, flux):
         r = self.downsp_rate
-        flux = flux.copy()[::r, ::r, :]
-        return flux
+        h = int(flux.shape[0] / r)
+        w = int(flux.shape[1] / r)
+        dim = (w, h)
+        resized = cv2.resize(flux, dim, interpolation=cv2.INTER_LINEAR)
+        return resized
 
     def expose(self, flux, T):
         """
