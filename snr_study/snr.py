@@ -25,8 +25,8 @@ tau = 149.7e-9  # dead time (s)
 dark_count = 0  # dark count rate (photons/s) [experimental, Sup 7]
 p_ap = 0  # after-pulsing probability [exp, Sup 7]
 
-"CCD constants"
-T_short = 0.001
+"CCD constants - naive"
+T_short = 0.0001
 T_long = 0.01
 fwc = 2**12  # full well capacity (electrons) [Sup 7]
 q_cmos = .7  # quantum efficiency [Sup 7]
