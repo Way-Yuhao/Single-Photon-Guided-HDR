@@ -297,6 +297,7 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
     # net.train()
 
     sample_output = output[target_idx, :, :, :]
+
     return dev_loss, sample_output
 
 
@@ -322,8 +323,8 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     indices = list(range(dataset_size))
     split = int(np.floor(validation_split * dataset_size))
     train_indices, dev_indices = indices[split:], indices[:split]
-    train_sampler = SubsetSequenceSampler(train_indices)
-    dev_sampler = SubsetSequenceSampler(dev_indices)
+    train_sampler = SubsetRandomSampler(train_indices)
+    dev_sampler = SubsetRandomSampler(dev_indices)
 
     train_loader = load_hdr_data(input_path, spad_path, target_path, None, train_sampler)
     dev_loader = load_hdr_data(input_path, spad_path, target_path, None, dev_sampler)
@@ -493,14 +494,14 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.1.3"
+    version = "-v2.2.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     # flush_plt()
 
