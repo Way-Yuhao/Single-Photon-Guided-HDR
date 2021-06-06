@@ -68,7 +68,7 @@ class SPADSimulator(object):
         if self.isMono:
             img = np.dstack((img, img, img))
         self.save_hdr_img(img, id)
-        self.save_img(img, gain, id)
+        # self.save_img(img, gain, id)
 
     def linearize(self, img, T):
         for N in np.nditer(img, op_flags=['readwrite']):
