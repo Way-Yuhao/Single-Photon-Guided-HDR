@@ -111,6 +111,17 @@ def save_hist(flux, id):
     plt.clf()
 
 
+def init():
+    # out_path = "../simulated_outputs/"
+    if os.path.exists(out_path + "CMOS") or os.path.exists(out_path + "ideal") or os.path.exists(out_path + "SPAD") or \
+            os.path.exists(out_path + "plt"):
+        raise FileExistsError("ERROR: found target directories inside {}. Please remove.".format(out_path))
+
+    os.mkdir(out_path + "CMOS")
+    os.mkdir(out_path + "SPAD")
+    os.mkdir(out_path + "ideal")
+    os.mkdir(out_path + "plt")
+
 def main():
     path, dirs, files = next(os.walk(fpath))
     file_count = len([x for x in files if "hdr" in x])
@@ -129,6 +140,7 @@ def main():
             # resave_gt(os.path.join(fpath, filename), id)
             bar.update(id)
             id += 1
+
 
 if __name__ == "__main__":
     main()
