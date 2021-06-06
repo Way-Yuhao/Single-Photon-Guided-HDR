@@ -11,7 +11,7 @@ from simulators.ideal_simulator import IdealSimulator
 import progressbar
 
 """global parameters"""
-fpath = "../input/1k/"
+fpath = "../input/collection/HDRI_4k/"
 out_path = "../simulated_outputs/"
 plt_path = "../simulated_outputs/plt/"
 
@@ -22,7 +22,7 @@ SPAD_mono = False          # if the sensor is monochromatic
 SPAD_T = .01               # exposure time in seconds
 SPAD_gain = 10             # uniform gain applied to the analog signal
 SPAD_tau = 150e-9          # dead time in seconds
-SPAD_down_sample_rate = 16  # spatial down sampling rate of the sensor
+SPAD_down_sample_rate = 2  # spatial down sampling rate of the sensor
 SPAD_qe = .4               # quantum efficiency index
 
 """CMOS parameters"""
@@ -30,10 +30,9 @@ CMOS_Sim = None
 CMOS_on = True              # toggle on to enable CMOS simulator
 CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
-# CMOS_T = .01                # exposure time in seconds
-CMOS_T = .001              #CMOS  # exposure time in seconds
+CMOS_T = .01                # exposure time in seconds
 CMOS_gain = 100             # uniform gain applied to the analog signal
-CMOS_down_sample_rate = 4   # spatial down sampling rate of the sensor
+CMOS_down_sample_rate = 1   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
     'r': .40,
     'g': .75,
@@ -122,7 +121,9 @@ def init():
     os.mkdir(out_path + "ideal")
     os.mkdir(out_path + "plt")
 
+
 def main():
+    init()
     path, dirs, files = next(os.walk(fpath))
     file_count = len([x for x in files if "hdr" in x])
     print("processing {} hdr files".format(file_count))
