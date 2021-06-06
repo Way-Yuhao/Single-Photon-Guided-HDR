@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import cv2
 import torch
@@ -422,6 +423,32 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     return
 
 
+def show_pred_all(net, loader_iter, size):
+    """
+    displaying network output for all inputs in the dataset
+    :param net: pytorch object
+    :param loader_iter: iterator of the data loader
+    :param size: size of the data set
+    :return: None
+    """
+    print("displaying network output for all inputs in the dataset; size = {}".format(size))
+
+    if os.path.exists("./out_files/pred_all/{}/".format(version)):
+        raise Exception("Error: ./out_files/pred_all/{}/ already exists".format(version))
+    else:
+        os.mkdir("./out_files/pred_all/{}/".format(version))
+        print("storing outputs in new directory ./out_files/pred_all/{}/".format(version))
+
+    for i in tqdm(range(size)):
+        with torch.no_grad():
+            input_, spad, target = loader_iter.next()
+            # input_, spad, target = input_.to(device), spad.to(device), target.to(device)
+            output = net(input_, spad)
+            # loss = compute_l1_loss(output, target)
+            save_hdr(output, "./out_files/pred_all/{}/output{}_{}.hdr".format(version, version, i))
+    return
+
+
 def show_predictions(net, target_idx, pre_trained_params_path):
     """
     displays and saves a select sample output
@@ -432,27 +459,30 @@ def show_predictions(net, target_idx, pre_trained_params_path):
     """
     global batch_size
     batch_size = 1
-    print("testing on {} images".format(batch_size))
     load_network_weights(net, pre_trained_params_path)
     test_loader = load_hdr_data(input_path, spad_path, target_path)
     test_iter = iter(test_loader)
 
-    # net.eval()
-    with torch.no_grad():
-        input_, spad, target = select_example(test_iter, target_idx)
-        output = net(input_, spad)
-        loss = compute_l1_loss(output, target)
+    if target_idx is -1:  # batch
+        show_pred_all(net, test_iter, len(test_loader))
+    else:  # single
+        print("testing on {} images, index = {}".format(batch_size, target_idx))
+        # net.eval()
+        with torch.no_grad():
+            input_, spad, target = select_example(test_iter, target_idx)
+            output = net(input_, spad)
+            loss = compute_l1_loss(output, target)
 
-    print("loss at test time = ", loss.item())
+        print("loss at test time = ", loss.item())
 
-    disp_plt(img=input_, title="input", idx=target_idx, tone_map=True)
-    disp_plt(img=spad, title="spad", idx=target_idx, tone_map=True)
-    disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), idx=target_idx, tone_map=True)
-    disp_plt(img=target, title="target", idx=target_idx, tone_map=True)
+        disp_plt(img=input_, title="input", idx=target_idx, tone_map=True)
+        disp_plt(img=spad, title="spad", idx=target_idx, tone_map=True)
+        disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), idx=target_idx, tone_map=True)
+        disp_plt(img=target, title="target", idx=target_idx, tone_map=True)
 
-    save_hdr(output, "./out_files/test_output{}_{}.hdr".format(version, target_idx))
-    save_hdr(input_, "./out_files/test_input{}_{}.hdr".format(version, target_idx))
-    save_hdr(target, "./out_files/test_ground_truth{}_{}.hdr".format(version, target_idx))
+        save_hdr(output, "./out_files/test_output{}_{}.hdr".format(version, target_idx))
+        save_hdr(input_, "./out_files/test_input{}_{}.hdr".format(version, target_idx))
+        save_hdr(target, "./out_files/test_ground_truth{}_{}.hdr".format(version, target_idx))
     return
 
 
@@ -472,7 +502,7 @@ def main():
     show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
-    flush_plt()
+    # flush_plt()
 
 
 if __name__ == "__main__":
