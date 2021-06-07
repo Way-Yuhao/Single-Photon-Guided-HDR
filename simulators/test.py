@@ -2,12 +2,11 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from math import exp
-a = 1
-print(exp(-a))
-
-path = "../input/100samplesDataset/9C4A0034-a460e29cd9.exr"
-
-img = cv2.imread(path, -1)
+import os
+from tqdm import tqdm
 
 
-print(img)
+img = cv2.imread("../simulated_outputs/CMOS/2_cmos.png", -1)
+img = cv2.cvtColor(img, cv2.COLOR_BGR2)
+plt.imshow(img/img.max())
+plt.show()

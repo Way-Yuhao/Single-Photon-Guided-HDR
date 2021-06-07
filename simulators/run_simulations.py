@@ -73,8 +73,9 @@ def scale_flux(flux):
     :return: scaled ground truth matrix
     """
 
-    flux *= 1e5  # HDRI
+    # flux *= 1e5  # HDRI
     # flux *= 1e7  # Laval Indoor
+    flux *= 5e4  # HDR_MATLAB_3x3
     return flux
 
 
@@ -137,13 +138,15 @@ def init():
     os.mkdir(out_path + "SPAD")
     os.mkdir(out_path + "ideal")
     os.mkdir(out_path + "plt")
+
     return
 
 
 def main():
     init()
     # run(collection_path + "100samplesDataset")
-    run(collection_path + "HDRI_4k")
+    # run(collection_path + "HDRI_4k")
+    run(collection_path + "HDR_MATLAB_3x3")
 
 if __name__ == "__main__":
     main()
