@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.tensorboard import SummaryWriter
+import torchvision
+from torchvision import transforms
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 # from Models import U_Net
@@ -20,12 +22,19 @@ train_param_path = "./model/unet/"
 input_path = "../data/combined_shuffled/CMOS/"
 target_path = "../data/combined_shuffled/ideal/"
 spad_path = "../data/combined_shuffled/SPAD/"
+
+# train_param_path = "./model/unet/"
+# input_path = "../data/hdri_437_256x128_bl/CMOS/"
+# target_path = "../data/hdri_437_256x128_bl/ideal/"
+# spad_path = "../data/hdri_437_256x128_bl/SPAD_RGB/"
+
+
 down_sp_rate = 1  # down sample rate
 
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 500
+epoch = 1000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -53,8 +62,18 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     :param sampler:
     :return: dataloader object
     """
+
+    # # data augmentation
+    # data_transforms = transforms.Compose([
+    #     # transforms.ToTensor(),
+    #     transforms.ToPILImage(mode="RGB"),
+    #     # transforms.CenterCrop(96),
+    #     transforms.ToTensor()
+    # ])
+
     data_loader = torch.utils.data.DataLoader(
-        customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform, target_transform=transform),
+        customDataFolder.ImageFolder(input_path_, spad_path_, target_path_,
+                                     input_transform=transform, target_transform=transform),
         batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
 
@@ -494,7 +513,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.2.1"
+    version = "-v2.2.3"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available

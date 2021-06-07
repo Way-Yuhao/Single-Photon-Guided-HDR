@@ -1,13 +1,15 @@
 from torchvision.datasets.vision import VisionDataset
-
 from PIL import Image
 import torch
 import torchvision.transforms as transforms
 import cv2
 import os
 import os.path
+import numpy as np
 import sys
 from natsort import natsorted
+from matplotlib import pyplot as plt
+from pytorch_run import disp_plt
 
 # IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 #
@@ -114,6 +116,45 @@ def normalize(input_, spad, target):
     return input_, spad, target
 
 
+def random_crop(input_, spad, target):
+    """
+
+    :param input_:
+    :param spad:
+    :param target:
+    :return:
+    """
+    crop_width = 512
+    crop_height = 256
+    diff = 2
+
+    max_h = input_.shape[1] - crop_height
+    max_w = input_.shape[2] - crop_width
+
+    h = np.random.randint(0, max_h/2) * 2  # random even numbers
+    w = np.random.randint(0, max_w/2) * 2
+    input_crop = input_[:, h: h + crop_height, w: w + crop_width]
+    target_crop = target[:, h: h + crop_height, w: w + crop_width]
+    spad_crop = spad[:, int(h/2): int((h + crop_height)/2), int(w/2): int((w + crop_width)/2)]
+    return input_crop, spad_crop, target_crop
+
+
+def random_horizontal_flip(input_, spad, target, p=.5):
+    x = np.random.rand()
+    if x > p:
+        input_ = torch.flip(input_, (2,))
+        spad = torch.flip(spad, (2,))
+        target = torch.flip(target, (2,))
+
+    return input_, spad, target
+
+
+def data_augmentation(input_, spad, target):
+    input_, spad, target = random_crop(input_, spad, target)
+    input_, spad, target = random_horizontal_flip(input_, spad, target)
+    return input_, spad, target
+
+
 class ImageFolder(VisionDataset):
     """A generic data loader where the images are arranged in this way:
 
@@ -171,6 +212,9 @@ class ImageFolder(VisionDataset):
         spad_sample = self.spad_transform(spad_sample)
         target_sample = self.target_transform(target_sample)
         input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
+
+        input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
+
         # spad_sample = spad_sample[1, :, :].unsqueeze(dim=0)  # only keep one channel
 
         # TODO: remove this (monochrome)
