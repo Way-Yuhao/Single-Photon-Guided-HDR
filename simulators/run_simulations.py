@@ -15,10 +15,13 @@ collection_path = "../input/collection/"
 out_path = "../simulated_outputs/"
 plt_path = "../simulated_outputs/plt/"
 
+artificial_path = "../simulated_outputs/artificial/input"
+
 """SPAD parameters"""
 SPAD_Sim = None
 SPAD_on = True             # toggle on to enable SPAD simulator
 SPAD_mono = False          # if the sensor is monochromatic
+# SPAD_T = .01               # exposure time in seconds
 SPAD_T = .01               # exposure time in seconds
 SPAD_gain = 10             # uniform gain applied to the analog signal
 SPAD_tau = 150e-9          # dead time in seconds
@@ -30,7 +33,8 @@ CMOS_Sim = None
 CMOS_on = True              # toggle on to enable CMOS simulator
 CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
-CMOS_T = .01                # exposure time in seconds
+# CMOS_T = .01                # exposure time in seconds
+CMOS_T = .000001                # exposure time in seconds
 CMOS_gain = 100             # uniform gain applied to the analog signal
 CMOS_down_sample_rate = 1   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
@@ -75,7 +79,7 @@ def scale_flux(flux):
 
     # flux *= 1e5  # HDRI
     # flux *= 1e7  # Laval Indoor
-    flux *= 5e4  # HDR_MATLAB_3x3
+    # flux *= 5e4  # HDR_MATLAB_3x3
     return flux
 
 
@@ -143,10 +147,11 @@ def init():
 
 
 def main():
-    init()
+    # init()
     # run(collection_path + "100samplesDataset")
     # run(collection_path + "HDRI_4k")
-    run(collection_path + "HDR_MATLAB_3x3")
+    # run(collection_path + "HDR_MATLAB_3x3")
+    run(artificial_path)
 
 if __name__ == "__main__":
     main()

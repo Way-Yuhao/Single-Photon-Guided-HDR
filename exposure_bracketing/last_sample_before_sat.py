@@ -61,13 +61,19 @@ def save(img, idx, mode="png", gamma=2.2):
         # b g r to r g b
 
 
+def run():
+    global out_path
+    out_path = "../simulated_outputs/artificial/"
+    path1 = "../simulated_outputs/artificial/log_out/0_cmos_.000001s.png"
+    path2 = "../simulated_outputs/artificial/log_out/0_cmos_.01s.png"
+    # path1 = "../simulated_outputs/artificial/log_out/0_gt_.000001s.hdr"
+    # path2 = "../simulated_outputs/artificial/log_out/0_gt_.01s.hdr"
 
 
-# def run():
-#     img1 = cv2.imread("./exp_brkt/long_cmos.png", -1).astype('float64')
-#     img2 = cv2.imread("./exp_brkt/short_cmos.png", -1).astype('float64')
-#     last_sample_before_sat_scaling(img1, img2)
-
+    img2 = cv2.imread(path1, -1).astype('float64')
+    img1 = cv2.imread(path2, -1).astype('float64')
+    merged = last_sample_before_sat_scaling(img1, img2, 1000000)
+    save(merged, 0, "png", gamma=4)
 
 def run_all():
     global out_path
@@ -90,7 +96,8 @@ def run_all():
 
 
 def main():
-    run_all()
+    # run_all()
+    run()
 
 
 if __name__ == "__main__":
