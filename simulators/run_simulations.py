@@ -8,17 +8,20 @@ from matplotlib import pyplot as plt
 from simulators.spad_simulator import SPADSimulator
 from simulators.cmos_simulator import CMOSSimulator
 from simulators.ideal_simulator import IdealSimulator
-import progressbar
+from tqdm import tqdm
 
 """global parameters"""
-fpath = "../input/collection/HDRI_4k/"
+collection_path = "../input/collection/"
 out_path = "../simulated_outputs/"
 plt_path = "../simulated_outputs/plt/"
 
+artificial_path = "../simulated_outputs/artificial/input"
+
 """SPAD parameters"""
 SPAD_Sim = None
-SPAD_on = False             # toggle on to enable SPAD simulator
+SPAD_on = True             # toggle on to enable SPAD simulator
 SPAD_mono = False          # if the sensor is monochromatic
+# SPAD_T = .01               # exposure time in seconds
 SPAD_T = .01               # exposure time in seconds
 SPAD_gain = 10             # uniform gain applied to the analog signal
 SPAD_tau = 150e-9          # dead time in seconds
@@ -30,7 +33,8 @@ CMOS_Sim = None
 CMOS_on = True              # toggle on to enable CMOS simulator
 CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
-CMOS_T = .01                # exposure time in seconds
+# CMOS_T = .01                # exposure time in seconds
+CMOS_T = .000001                # exposure time in seconds
 CMOS_gain = 100             # uniform gain applied to the analog signal
 CMOS_down_sample_rate = 1   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
@@ -41,7 +45,7 @@ CMOS_qe = {                 # quantum efficiency index for each color channel
 
 """ideal sensor parameters"""
 ideal_Sim = None
-ideal_on = False
+ideal_on = True
 idea_T = CMOS_T
 ideal_gain = CMOS_gain
 ideal_down_sample_rate = CMOS_down_sample_rate
@@ -72,9 +76,11 @@ def scale_flux(flux):
     scales the flux matrix by a constant
     :return: scaled ground truth matrix
     """
-    flux *= 100000
-    return flux
 
+    # flux *= 1e5  # HDRI
+    # flux *= 1e7  # Laval Indoor
+    # flux *= 5e4  # HDR_MATLAB_3x3
+    return flux
 
 
 def init_simulators():
@@ -88,7 +94,7 @@ def init_simulators():
         ideal_Sim = IdealSimulator(downsp_rate=ideal_down_sample_rate, path=out_path+"ideal/")
 
 
-def run_sumulations(flux, id):
+def run_simulations(flux, id):
     global SPAD_Sim, CMOS_Sim, ideal_Sim
     if SPAD_on:
         SPAD_Sim.expose(flux, SPAD_T)
@@ -110,6 +116,22 @@ def save_hist(flux, id):
     plt.clf()
 
 
+def run(fpath):
+    path, dirs, files = next(os.walk(fpath))
+    file_count = len([x for x in files if "hdr" in x or "exr" in x])
+    print("processing {} hdr files".format(file_count))
+    i = 0
+    for filename in tqdm(os.listdir(fpath)):
+        if not filename.endswith(".hdr") and not filename.endswith(".exr"):
+            continue
+        flux = read_flux(os.path.join(fpath, filename))
+        flux = scale_flux(flux)
+        init_simulators()
+        run_simulations(flux, str(i))
+        save_hist(flux, i)
+        i += 1
+
+
 def init():
     # out_path = "../simulated_outputs/"
     if os.path.exists(out_path + "CMOS") or os.path.exists(out_path + "ideal") or os.path.exists(out_path + "SPAD") or \
@@ -121,27 +143,15 @@ def init():
     os.mkdir(out_path + "ideal")
     os.mkdir(out_path + "plt")
 
+    return
+
 
 def main():
-    init()
-    path, dirs, files = next(os.walk(fpath))
-    file_count = len([x for x in files if "hdr" in x])
-    print("processing {} hdr files".format(file_count))
-    id = 0
-    with progressbar.ProgressBar(max_value=file_count) as bar:
-        bar.update(id)
-        for filename in os.listdir(fpath):
-            if not filename.endswith(".hdr"):
-                continue
-            flux = read_flux(os.path.join(fpath, filename))
-            flux = scale_flux(flux)
-            init_simulators()
-            run_sumulations(flux, str(id))
-            save_hist(flux, id)
-            # resave_gt(os.path.join(fpath, filename), id)
-            bar.update(id)
-            id += 1
-
+    # init()
+    # run(collection_path + "100samplesDataset")
+    # run(collection_path + "HDRI_4k")
+    # run(collection_path + "HDR_MATLAB_3x3")
+    run(artificial_path)
 
 if __name__ == "__main__":
     main()
