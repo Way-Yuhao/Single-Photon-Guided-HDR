@@ -43,11 +43,11 @@ class CMOSSimulator(object):
         img = img * self.q
         img = img * T
         # adding poisson noise
-        for p in np.nditer(img, op_flags=['readwrite']):
+        for p in np.nditer(img, op_flags=['readwrite']):  # FIXME: vectorize
             p[...] = np.random.poisson(p)
         # clipping at the full well capacity of the sensor
         img[img >= self.fwc] = self.fwc
-        img[img < 1.0] = 0
+        img[img < 1.0] = 0   # FIXME: might be an issue
         self.img = img
     """IMAGE PROCESSING PIPELINE"""
 

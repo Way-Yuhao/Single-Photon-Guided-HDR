@@ -6,7 +6,16 @@ import os
 from tqdm import tqdm
 
 
-img = cv2.imread("../simulated_outputs/CMOS/2_cmos.png", -1)
-img = cv2.cvtColor(img, cv2.COLOR_BGR2)
+def rand_horizontal_flip(img, p=.5):
+    x = np.random.rand()
+    if x > p:
+        return np.flip(img, axis=1)
+    else:
+        return img
+
+
+img = cv2.imread("../simulated_outputs/artificial/scene_gray_text.hdr", -1)
+img = rand_horizontal_flip(img)
+
 plt.imshow(img/img.max())
 plt.show()
