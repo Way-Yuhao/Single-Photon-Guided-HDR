@@ -36,13 +36,21 @@ class SPADSimulator(object):
             # img = 0.2126 * r + 0.7152 * g + 0.0722 * b  # convert to monochrome
             img = g
         # adding photon noise
-        for p in np.nditer(img, op_flags=['readwrite']):
-            phi = p  # photon flux
-            num = self.q * phi * T  # numerator
-            den = 1 + self.q * phi * self.tau  # denominator
-            mean = num / den  # expectation of photon counts
-            var = num / den ** 3  # variance of photon counts
-            p[...] = np.random.normal(mean, var ** .5)
+        # for p in np.nditer(img, op_flags=['readwrite']):
+        #     phi = p  # photon flux
+        #     num = self.q * phi * T  # numerator
+        #     den = 1 + self.q * phi * self.tau  # denominator
+        #     mean = num / den  # expectation of photon counts
+        #     var = num / den ** 3  # variance of photon counts
+        #     p[...] = np.random.normal(mean, var ** .5)
+
+        phi = img  # photon flux
+        num = self.q * phi * T  # numerator
+        den = 1 + self.q * phi * self.tau  # denominator
+        mean = num / den  # expectation of photon counts
+        var = num / den ** 3  # variance of photon counts
+        img = np.random.normal(mean, var**.5)
+
         # apply quantization and ensure correct range of [0, T/tau]
         img = np.rint(img)
         img[img <= 0] = 0
@@ -61,18 +69,22 @@ class SPADSimulator(object):
 
     """IMAGE PROCESSING PIPELINE"""
 
-    def process(self, T, gain, id=""):
+    def process(self, T, id=""):
         img = self.img.copy()  # processed image
         img = self.linearize(img, T)
         img /= self.q  # factor in qe
         if self.isMono:
             img = np.dstack((img, img, img))
+        img = img.astype(np.float32)
+
         self.save_hdr_img(img, id)
-        self.save_img(img, gain, id)
+        # self.save_img(img, gain, id)
 
     def linearize(self, img, T):
-        for N in np.nditer(img, op_flags=['readwrite']):
-            N[...] = N / (T - N * self.tau)
+        # for N in np.nditer(img, op_flags=['readwrite']):
+        #     N[...] = N / (T - N * self.tau)
+
+        img = img / (T - img * self.tau)
         return img
 
     def save_hdr_img(self, img, id):

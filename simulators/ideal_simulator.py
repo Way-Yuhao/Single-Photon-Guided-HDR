@@ -17,8 +17,11 @@ class IdealSimulator(object):
 
     def down_sample_flux(self, flux):
         r = self.downsp_rate
-        flux = flux.copy()[::r, ::r, :]
-        return flux
+        h = int(flux.shape[0] / r)
+        w = int(flux.shape[1] / r)
+        dim = (w, h)
+        resized = cv2.resize(flux, dim, interpolation=cv2.INTER_LINEAR)
+        return resized
 
     def expose(self, flux, T):
         if self.downsp_rate != 1:
@@ -29,9 +32,8 @@ class IdealSimulator(object):
         self.img = img
         return
 
-    def process(self, gain, id=""):
-        # applying gain
-        img = gain * self.img
+    def process(self, T, id=""):
+        img = self.img / T
         self.save_hdr_img(img, id)
 
     def save_hdr_img(self, img, id):

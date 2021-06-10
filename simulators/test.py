@@ -2,12 +2,13 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from math import exp
-a = 1
-print(exp(-a))
-
-path = "../input/100samplesDataset/9C4A0034-a460e29cd9.exr"
-
-img = cv2.imread(path, -1)
+import os
+from tqdm import tqdm
 
 
-print(img)
+
+img = cv2.imread("../simulated_outputs/CMOS/0_cmos.hdr", -1)
+img2 = cv2.imread("../simulated_outputs/SPAD/0_spad.hdr", -1)
+print(img.median())
+print(img2.median())
+print(0)

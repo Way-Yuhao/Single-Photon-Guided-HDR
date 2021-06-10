@@ -15,27 +15,27 @@ collection_path = "../input/collection/"
 out_path = "../simulated_outputs/"
 plt_path = "../simulated_outputs/plt/"
 
-artificial_path = "../simulated_outputs/artificial/input"
+# artificial_path = "../simulated_outputs/artificial/input"
 
 """SPAD parameters"""
 SPAD_Sim = None
 SPAD_on = True             # toggle on to enable SPAD simulator
 SPAD_mono = False          # if the sensor is monochromatic
-# SPAD_T = .01               # exposure time in seconds
 SPAD_T = .01               # exposure time in seconds
-SPAD_gain = 10             # uniform gain applied to the analog signal
+# SPAD_T = .01               # exposure time in seconds
+# SPAD_gain = 10             # uniform gain applied to the analog signal
 SPAD_tau = 150e-9          # dead time in seconds
-SPAD_down_sample_rate = 2  # spatial down sampling rate of the sensor
+SPAD_down_sample_rate = 4  # spatial down sampling rate of the sensor
 SPAD_qe = .4               # quantum efficiency index
 
 """CMOS parameters"""
 CMOS_Sim = None
 CMOS_on = True              # toggle on to enable CMOS simulator
 CMOS_mono = False           # if the sensor is monochromatic
-CMOS_fwc = 2**12            # full well capacity with a 12 bit sensor
-# CMOS_T = .01                # exposure time in seconds
-CMOS_T = .000001                # exposure time in seconds
-CMOS_gain = 100             # uniform gain applied to the analog signal
+CMOS_fwc = 33400            # full well capacity with a 15 bit sensor
+CMOS_T = .01                # exposure time in seconds
+# CMOS_T = .000001                # exposure time in seconds
+# CMOS_gain = 1             # uniform gain applied to the analog signal
 CMOS_down_sample_rate = 1   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
     'r': .40,
@@ -47,7 +47,7 @@ CMOS_qe = {                 # quantum efficiency index for each color channel
 ideal_Sim = None
 ideal_on = True
 idea_T = CMOS_T
-ideal_gain = CMOS_gain
+# ideal_gain = CMOS_gain
 ideal_down_sample_rate = CMOS_down_sample_rate
 
 
@@ -78,7 +78,7 @@ def scale_flux(flux):
     """
 
     # flux *= 1e5  # HDRI
-    # flux *= 1e7  # Laval Indoor
+    flux *= 1e7  # Laval Indoor
     # flux *= 5e4  # HDR_MATLAB_3x3
     return flux
 
@@ -98,13 +98,13 @@ def run_simulations(flux, id):
     global SPAD_Sim, CMOS_Sim, ideal_Sim
     if SPAD_on:
         SPAD_Sim.expose(flux, SPAD_T)
-        SPAD_Sim.process(SPAD_T, SPAD_gain, id)
+        SPAD_Sim.process(SPAD_T, id)
     if CMOS_on:
         CMOS_Sim.expose(flux, CMOS_T)
-        CMOS_Sim.process(CMOS_gain, id)
+        CMOS_Sim.process(CMOS_T, id)
     if ideal_on:
         ideal_Sim.expose(flux, idea_T)
-        ideal_Sim.process(ideal_gain, id)
+        ideal_Sim.process(idea_T, id)
 
 
 def save_hist(flux, id):
@@ -147,11 +147,11 @@ def init():
 
 
 def main():
-    # init()
+    init()
     # run(collection_path + "100samplesDataset")
     # run(collection_path + "HDRI_4k")
-    # run(collection_path + "HDR_MATLAB_3x3")
-    run(artificial_path)
+    run(collection_path + "HDR_MATLAB_3x3")
+    # run(artificial_path)
 
 if __name__ == "__main__":
     main()

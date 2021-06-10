@@ -8,6 +8,8 @@ The CMOS sensor operates with a pre-defined full well capacity limit
 
 import cv2
 import numpy as np
+from radiance_writer import radiance_writer
+
 
 class CMOSSimulator(object):
 
@@ -43,23 +45,19 @@ class CMOSSimulator(object):
         img = img * self.q
         img = img * T
         # adding poisson noise
-        for p in np.nditer(img, op_flags=['readwrite']):
-            p[...] = np.random.poisson(p)
+        img = np.random.poisson(img)
         # clipping at the full well capacity of the sensor
         img[img >= self.fwc] = self.fwc
-        img[img < 1.0] = 0
+        # img[img < 1.0] = 0   # FIXME: might be an issue
         self.img = img
     """IMAGE PROCESSING PIPELINE"""
 
-    def process(self, gain, id=""):
+    def process(self, T, id=""):
         img = self.img / self.q
-        # applying gain
-        img = gain * img
-        # apply quantization and ensure correct range for a 16-bit output
-        img[img >= 2 ** 16 - 1] = 2 ** 16 - 1
-        img = img.astype(np.uint16)
+        img /= T
         self.img = img
-        self.save_img(id)
+        # self.save_img(id)
+        self.save_hdr_img(id)
 
     def save_img(self, id):
         """
@@ -67,4 +65,18 @@ class CMOSSimulator(object):
         :param img:
         :return: None
         """
-        cv2.imwrite(self.path + id + "_cmos.png", self.img)
+        img = self.img
+        # apply quantization and ensure correct range for a 16-bit output
+        img[img >= 2 ** 16 - 1] = 2 ** 16 - 1
+        img = img.astype(np.uint16)
+        cv2.imwrite(self.path + id + "_cmos.png", img)
+
+    def save_hdr_img(self, id):
+        """
+
+        :param img:
+        :return: 32-bit hdr image
+        """
+        img = self.img.astype(np.float32)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        radiance_writer(img, self.path + id + "_cmos.hdr")
