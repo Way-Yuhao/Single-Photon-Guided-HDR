@@ -24,7 +24,7 @@ class SPADSimulator(object):
         h = int(flux.shape[0] / r)
         w = int(flux.shape[1] / r)
         dim = (w, h)
-        resized = cv2.resize(flux, dim, interpolation=cv2.INTER_LINEAR)
+        resized = cv2.resize(flux, dim, interpolation=cv2.INTER_AREA)
         return resized
 
     def expose(self, flux, T):

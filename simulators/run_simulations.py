@@ -149,8 +149,8 @@ def init():
 def main():
     init()
     # run(collection_path + "100samplesDataset")
-    # run(collection_path + "HDRI_4k")
-    run(collection_path + "HDR_MATLAB_3x3")
+    run(collection_path + "HDRI_4k")
+    # run(collection_path + "HDR_MATLAB_3x3")
     # run(artificial_path)
 
 if __name__ == "__main__":
