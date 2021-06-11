@@ -15,7 +15,7 @@ class SPADSimulator(object):
         self.tau = tau
         self.downsp_rate = downsp_rate
         self.isMono = isMono
-        self.q = q
+        self.q = np.array([q["b"], q["g"], q["r"]])
         self.path = path
         self.img = None
 

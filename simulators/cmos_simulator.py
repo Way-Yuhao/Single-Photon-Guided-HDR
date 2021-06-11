@@ -47,16 +47,46 @@ class CMOSSimulator(object):
         # adding poisson noise
         img = np.random.poisson(img)
         # clipping at the full well capacity of the sensor
-        img[img >= self.fwc] = self.fwc
-        # img[img < 1.0] = 0   # FIXME: might be an issue
+        # img[img >= self.fwc] = self.fwc
+
         self.img = img
+        self.smart_fwc()
+
+        # img[img < 1.0] = 0   # FIXME: might be an issue
+        # self.img = img  # TODO: restore this
     """IMAGE PROCESSING PIPELINE"""
 
+    def smart_fwc(self):
+        img = self.img
+        sat = self.q * self.fwc
+        # self.img[self.img > sat] = sat
+
+        for h in range(img.shape[0]):
+            for w in range(img.shape[1]):
+                for c in range(img.shape[2]):
+                    if img[h][w][c] >= sat[c]:
+                        img[h][w] = sat
+                        continue
+
+        self.img = img
+
+
+    def white_balance(self, T):
+        img = self.img
+        sat = self.q * self.fwc / T
+        white_pt = np.min(sat) * 2.0
+        for h in range(img.shape[0]):
+            for w in range(img.shape[1]):
+                for c in range(img.shape[2]):
+                    if img[h][w][c] >= sat[c]:
+                        img[h][w] = white_pt
+                        continue
+        self.img = img
+        return
 
     def process(self, T, id=""):
-        img = self.img / self.q
-        img /= T
-        self.img = img
+        self.img = self.img / (self.q * T)
+        # self.white_balance(T)
         # self.save_img(id)
         self.save_hdr_img(id)
 
