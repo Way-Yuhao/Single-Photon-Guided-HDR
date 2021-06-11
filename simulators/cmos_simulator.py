@@ -52,6 +52,7 @@ class CMOSSimulator(object):
         self.img = img
     """IMAGE PROCESSING PIPELINE"""
 
+
     def process(self, T, id=""):
         img = self.img / self.q
         img /= T

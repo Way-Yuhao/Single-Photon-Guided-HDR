@@ -15,7 +15,7 @@ collection_path = "../input/collection/"
 out_path = "../simulated_outputs/"
 plt_path = "../simulated_outputs/plt/"
 
-# artificial_path = "../simulated_outputs/artificial/input"
+artificial_path = "../simulated_outputs/artificial/input"
 
 """SPAD parameters"""
 SPAD_Sim = None
@@ -76,7 +76,7 @@ def scale_flux(flux):
     scales the flux matrix by a constant
     :return: scaled ground truth matrix
     """
-
+    flux *= 100
     # flux *= 1e5  # HDRI
     flux *= 1e7  # Laval Indoor
     # flux *= 5e4  # HDR_MATLAB_3x3
@@ -147,9 +147,9 @@ def init():
 
 
 def main():
-    init()
-    # run(collection_path + "100samplesDataset")
-    run(collection_path + "HDRI_4k")
+    # init()
+    run(collection_path + "100samplesDataset")
+    # run(collection_path + "HDRI_4k")
     # run(collection_path + "HDR_MATLAB_3x3")
     # run(artificial_path)
 

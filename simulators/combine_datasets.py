@@ -74,11 +74,11 @@ def test():
 
 
 def main():
-    counter = 0
-    counter = combine(counter, path_1)
-    counter = combine(counter, path_2)
-    counter = combine(counter, path_3)
-    # shuffle()
+    # counter = 0
+    # counter = combine(counter, path_1)
+    # counter = combine(counter, path_2)
+    # counter = combine(counter, path_3)
+    shuffle()
 
 
 if __name__ == "__main__":
