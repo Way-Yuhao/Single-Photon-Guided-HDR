@@ -290,19 +290,17 @@ class IntensityGuidedHDRNet(nn.Module):
         self.DeConv4 = DeConvBlock(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3], output_size=(h[3], h[3] * 2))
         self.DeConv3 = DeConvBlock(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2], output_size=(h[2], h[2] * 2))
         self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1], output_size=(h[1], h[1] * 2))
-        self.DeConv1 = DeConvBlock(in_ch=2 * main_chs[1] + side_chs[2], out_ch=main_chs[0], output_size=(h[0], h[0] * 2))
+        self.DeConv1 = DeConvBlock(in_ch=2 * main_chs[1], out_ch=main_chs[0], output_size=(h[0], h[0] * 2))
 
         # attention gates
         self.Att1 = AttentionBlock(F_g=main_chs[1], F_l=main_chs[1], F_int=main_chs[0])
         self.Att0 = AttentionBlock(F_g=main_chs[0], F_l=main_chs[0], F_int=1)
 
         # spad encoder
-        self.SpadConv1 = nn.Conv2d(side_chs[1], side_chs[2], kernel_size=1, stride=1, padding=0, bias=True)
-        self.SpadConv2 = nn.Conv2d(side_chs[2], side_chs[2], kernel_size=2, stride=2, padding=0, bias=True)
+        self.SpadConv2 = nn.Conv2d(side_chs[1], side_chs[2], kernel_size=1, stride=1, padding=0, bias=True)
         self.SpadConv3 = nn.Conv2d(side_chs[2], side_chs[3], kernel_size=2, stride=2, padding=0, bias=True)
         self.SpadConv4 = nn.Conv2d(side_chs[3], side_chs[4], kernel_size=2, stride=2, padding=0, bias=True)
         self.SpadConv5 = nn.Conv2d(side_chs[4], side_chs[5], kernel_size=2, stride=2, padding=0, bias=True)
-
 
         # final encoders
         self.ConvOut = OneByOneConvBlock(in_ch=2 * main_chs[0], out_ch=main_chs[0])
@@ -327,8 +325,7 @@ class IntensityGuidedHDRNet(nn.Module):
         e6 = self.Conv6(e5)
 
         # spad encoder
-        y1 = self.SpadConv1(y)
-        y2 = self.SpadConv2(y1)
+        y2 = self.SpadConv2(y)
         y3 = self.SpadConv3(y2)
         y4 = self.SpadConv4(y3)
         y5 = self.SpadConv5(y4)
@@ -340,7 +337,7 @@ class IntensityGuidedHDRNet(nn.Module):
         d2 = self.DeConv3(d3, y3, e3)
         d1 = self.DeConv2(d2, y2, e2)
         e1_att = self.Att1(g=d1, x=e1)
-        d0 = self.DeConv1(d1, y1, e1_att)
+        d0 = self.DeConv1(d1, e1_att)
 
         # final encodings
         x_att = self.Att0(g=d0, x=x)
