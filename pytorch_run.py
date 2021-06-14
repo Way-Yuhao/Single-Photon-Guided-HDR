@@ -74,8 +74,9 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_,
                                      input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=0, shuffle=False, sampler=sampler)
     return data_loader
+    # TODO: change num_worker
 
 
 def load_network_weights(net, path):
@@ -265,14 +266,28 @@ def disp_sample(input_, spad, output, target, idx=0, msg=""):
     :param msg:
     :return:
     """
-    if input_ is not None:
-        disp_plt(input_[idx, :, :, :], title=msg + " / input", tone_map=True)
-    if spad is not None:
-        disp_plt(spad[idx, :, :, :], title=msg + " / spad", tone_map=True)
-    if output is not None:
-        disp_plt(output[idx, :, :, :], title=msg + " / outputs", tone_map=True)
-    if target is not None:
-        disp_plt(target[idx, :, :, :], title=msg + " / target", tone_map=True)
+
+    if len(input_.size()) == 4:
+        if input_ is not None:
+            disp_plt(input_[idx, :, :, :], title=msg + " / input", tone_map=True)
+        if spad is not None:
+            disp_plt(spad[idx, :, :, :], title=msg + " / spad", tone_map=True)
+        if output is not None:
+            disp_plt(output[idx, :, :, :], title=msg + " / outputs", tone_map=True)
+        if target is not None:
+            disp_plt(target[idx, :, :, :], title=msg + " / target", tone_map=True)
+    elif len(input_.size()) == 3:
+        if input_ is not None:
+            disp_plt(input_, title=msg + " / input", tone_map=True)
+        if spad is not None:
+            disp_plt(spad, title=msg + " / spad", tone_map=True)
+        if output is not None:
+            disp_plt(output, title=msg + " / outputs", tone_map=True)
+        if target is not None:
+            disp_plt(target, title=msg + " / target", tone_map=True)
+    else:
+        raise Exception("ERROR: number of dimension of image tensor is neither 3 nor 4")
+
     flush_plt()
     return
 
@@ -376,6 +391,9 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         cur_dev_loss, dev_output_sample = dev(net, device, dev_loader, ep, tb)
         print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_dev_loss))
         running_train_loss = 0.0
+
+        disp_sample(input_, spad, None, target, msg="one epoch")
+        raise Exception()
 
         if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = output[0, :, :, :]

@@ -126,7 +126,7 @@ def random_crop(input_, spad, target):
     """
     crop_width = 512
     crop_height = 256
-    diff = 2
+    diff = 4
 
     max_h = input_.shape[1] - crop_height
     max_w = input_.shape[2] - crop_width
@@ -135,7 +135,7 @@ def random_crop(input_, spad, target):
     w = np.random.randint(0, max_w/2) * 2
     input_crop = input_[:, h: h + crop_height, w: w + crop_width]
     target_crop = target[:, h: h + crop_height, w: w + crop_width]
-    spad_crop = spad[:, int(h/2): int((h + crop_height)/2), int(w/2): int((w + crop_width)/2)]
+    spad_crop = spad[:, int(h/diff): int((h + crop_height)/diff), int(w/diff): int((w + crop_width)/diff)]
     return input_crop, spad_crop, target_crop
 
 
@@ -151,12 +151,12 @@ def random_horizontal_flip(input_, spad, target, p=.5):
 
 def data_augmentation(input_, spad, target):
 
-    disp_sample(input_, spad, target, msg="before transformation")
+    # disp_sample(input_, spad, None, target, msg="before transformation")
 
     input_, spad, target = random_crop(input_, spad, target)
     input_, spad, target = random_horizontal_flip(input_, spad, target)
 
-    raise Exception()
+    # disp_sample(input_, spad, None, target, msg="after transformation")
 
     return input_, spad, target
 
@@ -233,7 +233,7 @@ class ImageFolder(VisionDataset):
 
     def check_files(self):
         # check file extensions
-        if not self.inputs[0].lower().endswith("png"):
+        if not self.inputs[0].lower().endswith("hdr"):
             raise FileExistsError("ERROR: expected input images of type .png")
         if not self.spad_inputs[0].lower().endswith("hdr"):
             raise FileExistsError("ERROR: expected SPAD input images of type .hdr")
