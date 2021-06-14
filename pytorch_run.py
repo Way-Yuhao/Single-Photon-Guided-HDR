@@ -34,7 +34,7 @@ down_sp_rate = 1  # down sample rate
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 1000
+epoch = 500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -519,7 +519,7 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=435, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=300, pre_trained_params_path=param_to_load)
     train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     tb.close()
     # flush_plt()

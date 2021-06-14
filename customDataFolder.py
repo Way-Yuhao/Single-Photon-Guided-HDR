@@ -9,7 +9,7 @@ import numpy as np
 import sys
 from natsort import natsorted
 from matplotlib import pyplot as plt
-from pytorch_run import disp_plt
+from pytorch_run import disp_plt, disp_sample
 
 # IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 #
@@ -150,8 +150,14 @@ def random_horizontal_flip(input_, spad, target, p=.5):
 
 
 def data_augmentation(input_, spad, target):
+
+    disp_sample(input_, spad, target, msg="before transformation")
+
     input_, spad, target = random_crop(input_, spad, target)
     input_, spad, target = random_horizontal_flip(input_, spad, target)
+
+    raise Exception()
+
     return input_, spad, target
 
 
