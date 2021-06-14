@@ -34,7 +34,7 @@ down_sp_rate = 1  # down sample rate
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 500
+epoch = 1000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -74,9 +74,8 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_,
                                      input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=0, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
     return data_loader
-    # TODO: change num_worker
 
 
 def load_network_weights(net, path):
@@ -392,14 +391,11 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_dev_loss))
         running_train_loss = 0.0
 
-        disp_sample(input_, spad, None, target, msg="one epoch")
-        raise Exception()
-
         if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = output[0, :, :, :]
-            save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
+            # save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
-            save_16bit_png(dev_output_sample, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
+            # save_16bit_png(dev_output_sample, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
             save_weights(net, ep)
 
     print("finished training")
@@ -531,7 +527,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.2.3"
+    version = "-v2.3.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available

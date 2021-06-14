@@ -141,7 +141,7 @@ def random_crop(input_, spad, target):
 
 def random_horizontal_flip(input_, spad, target, p=.5):
     x = np.random.rand()
-    if x > p:
+    if x < p:
         input_ = torch.flip(input_, (2,))
         spad = torch.flip(spad, (2,))
         target = torch.flip(target, (2,))
@@ -149,14 +149,21 @@ def random_horizontal_flip(input_, spad, target, p=.5):
     return input_, spad, target
 
 
-def data_augmentation(input_, spad, target):
+def random_rotation(input_, spad, target, p=.25):
+    x = np.random.rand()  # probability of rotation
+    if x < p:
+        input_ = torch.rot90(input_, 2, [1, 2])
+        spad = torch.rot90(spad, 2, [1, 2])
+        target = torch.rot90(target, 2, [1, 2])
 
-    # disp_sample(input_, spad, None, target, msg="before transformation")
+    return input_, spad, target
+
+
+def data_augmentation(input_, spad, target):
 
     input_, spad, target = random_crop(input_, spad, target)
     input_, spad, target = random_horizontal_flip(input_, spad, target)
-
-    # disp_sample(input_, spad, None, target, msg="after transformation")
+    input_, spad, target = random_rotation(input_, spad, target)
 
     return input_, spad, target
 
