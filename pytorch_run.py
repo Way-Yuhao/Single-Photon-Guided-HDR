@@ -19,9 +19,16 @@ from radiance_writer import radiance_writer
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 train_param_path = "./model/unet/"
-input_path = "../data/combined_shuffled/CMOS/"
-target_path = "../data/combined_shuffled/ideal/"
-spad_path = "../data/combined_shuffled/SPAD/"
+# input_path = "../data/combined_shuffled/CMOS/"
+# target_path = "../data/combined_shuffled/ideal/"
+# spad_path = "../data/combined_shuffled/SPAD/"
+
+input_path = "../data/small_shuffled/CMOS/"
+target_path = "../data/small_shuffled/ideal/"
+spad_path = "../data/small_shuffled/SPAD/"
+
+# TODO: change path back
+
 
 # train_param_path = "./model/unet/"
 # input_path = "../data/hdri_437_256x128_bl/CMOS/"
@@ -34,7 +41,7 @@ down_sp_rate = 1  # down sample rate
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 1000
+epoch = 1500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 
 
@@ -527,16 +534,18 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.3.0"
+    version = "-v2.4.2"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
+    # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=300, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
+
     tb.close()
-    # flush_plt()
+    flush_plt()
 
 
 if __name__ == "__main__":
