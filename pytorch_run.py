@@ -43,6 +43,11 @@ init_lr = 0.001  # initial learning rate
 batch_size = 4
 epoch = 1500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
+num_workers = 0
+"""Simulation Parameters"""
+CMOS_fwc = 33400  # full well capacity of the CMOS sensor
+CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
+CMOS_sat = CMOS_fwc / CMOS_T  # saturation value of the CMOS simulated images
 
 
 def set_device():
@@ -81,7 +86,7 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_,
                                      input_transform=transform, target_transform=transform),
-        batch_size=batch_size, num_workers=4, shuffle=False, sampler=sampler)
+        batch_size=batch_size, num_workers=num_workers, shuffle=False, sampler=sampler)
     return data_loader
 
 
@@ -534,15 +539,15 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.4.2"
+    version = "-v2.4.3"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()

@@ -9,7 +9,7 @@ import numpy as np
 import sys
 from natsort import natsorted
 from matplotlib import pyplot as plt
-from pytorch_run import disp_plt, disp_sample
+from pytorch_run import disp_plt, disp_sample, CMOS_sat
 
 # IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 #
@@ -80,6 +80,7 @@ from pytorch_run import disp_plt, disp_sample
 #     return cv_loader(path)
 
 
+
 def cv_loader(path):
     img = cv2.imread(path, -1)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -110,9 +111,9 @@ def normalize(input_, spad, target):
     :param target: target tensor. Expects original label image files to be 32-bit .hdr (float32)
     :return: normalized input and label
     """
-    input_ = input_ / 2 ** 16
-    spad = spad / 2**16
-    target = target / 2 ** 16
+    input_ = input_ / CMOS_sat
+    spad = spad / CMOS_sat
+    target = target / CMOS_sat
     return input_, spad, target
 
 
@@ -127,15 +128,25 @@ def random_crop(input_, spad, target):
     crop_width = 512
     crop_height = 256
     diff = 4
+    sat_bound = .1 * crop_width * crop_height
 
     max_h = input_.shape[1] - crop_height
     max_w = input_.shape[2] - crop_width
 
-    h = np.random.randint(0, max_h/2) * 2  # random even numbers
-    w = np.random.randint(0, max_w/2) * 2
-    input_crop = input_[:, h: h + crop_height, w: w + crop_width]
-    target_crop = target[:, h: h + crop_height, w: w + crop_width]
-    spad_crop = spad[:, int(h/diff): int((h + crop_height)/diff), int(w/diff): int((w + crop_width)/diff)]
+    is_saturated = False
+    input_crop, spad_crop, target_crop = None, None, None
+    counter = 10
+    while not is_saturated and counter > 0:
+        h = np.random.randint(0, max_h/2) * 2  # random even numbers
+        w = np.random.randint(0, max_w/2) * 2
+        input_crop = input_[:, h: h + crop_height, w: w + crop_width]
+        target_crop = target[:, h: h + crop_height, w: w + crop_width]
+        spad_crop = spad[:, int(h/diff): int((h + crop_height)/diff), int(w/diff): int((w + crop_width)/diff)]
+        if torch.sum(input_crop > CMOS_sat) > sat_bound:
+            is_saturated = True
+        else:
+            counter -= 1
+
     return input_crop, spad_crop, target_crop
 
 
@@ -224,9 +235,8 @@ class ImageFolder(VisionDataset):
         input_sample = self.input_transform(input_sample)
         spad_sample = self.spad_transform(spad_sample)
         target_sample = self.target_transform(target_sample)
-        input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
-
         input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
+        input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
 
         # spad_sample = spad_sample[1, :, :].unsqueeze(dim=0)  # only keep one channel
 
