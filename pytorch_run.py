@@ -539,7 +539,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.4.3"
+    version = "-v2.5.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     tb = SummaryWriter('./runs/unet' + version)
