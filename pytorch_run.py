@@ -39,11 +39,11 @@ spad_path = "../data/small_shuffled/SPAD/"
 down_sp_rate = 1  # down sample rate
 
 """Hyper Parameters"""
-init_lr = 0.001  # initial learning rate
+init_lr = 0.01  # initial learning rate was .001
 batch_size = 4
 epoch = 1500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
-num_workers = 0
+num_workers = 4
 """Simulation Parameters"""
 CMOS_fwc = 33400  # full well capacity of the CMOS sensor
 CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
@@ -379,6 +379,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
                                                                                            len(dev_loader)))
     num_mini_batches = len(train_loader)
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=30, gamma=.01)
 
     # training loop
     running_train_loss = 0.0
@@ -402,6 +403,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         cur_dev_loss, dev_output_sample = dev(net, device, dev_loader, ep, tb)
         print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_dev_loss))
         running_train_loss = 0.0
+        scheduler.step()
 
         if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = output[0, :, :, :]
@@ -539,7 +541,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.4.3"
+    version = "-v2.4.5"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     tb = SummaryWriter('./runs/unet' + version)
