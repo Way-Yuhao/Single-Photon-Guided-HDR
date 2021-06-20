@@ -15,6 +15,7 @@ from lum_fusion_model import LumFusionNet, IntensityGuidedHDRNet
 import customDataFolder
 from old.sequence_subset_sampler import SubsetSequenceSampler
 from radiance_writer import radiance_writer
+from playground.vgg_perceptual_loss import VGGPerceptualLoss
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
@@ -41,7 +42,7 @@ down_sp_rate = 1  # down sample rate
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
 batch_size = 4
-epoch = 1500
+epoch = 2000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 num_workers = 0
 """Simulation Parameters"""
@@ -144,6 +145,24 @@ def tone_map(output, target):
     output = torch.log(1 + mu * output) / np.log(1 + mu)
     target = torch.log(1 + mu * target) / np.log(1 + mu)
     return output, target
+
+
+def compute_l1_perc(output, target, vgg_net):
+    """
+
+    :param output:
+    :param target:
+    :return:
+    """
+    l1_criterion = nn.L1Loss()
+    output, target = tone_map(output, target)
+    l1_loss = l1_criterion(output, target)
+
+    with torch.no_grad():
+        perc_loss = vgg_net(output, target)
+
+    total_loss = l1_loss + .03 * perc_loss
+    return total_loss
 
 
 def compute_l1_loss(output, target):
@@ -359,6 +378,11 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     print_params()  # print hyper parameters
     net.to(device)
     net.train()
+
+    # init vgg net
+    vgg_net = VGGPerceptualLoss()
+    vgg_net.to(device)
+
     if load_weights:
         load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
@@ -392,7 +416,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
             input_, spad, target = input_.to(device), spad.to(device), target.to(device)
             optimizer.zero_grad()
             output = net(input_, spad)
-            loss = compute_l1_loss(output, target)
+            loss = compute_l1_perc(output, target, vgg_net)
             loss.backward()
             optimizer.step()
             running_train_loss += loss.item()
@@ -403,7 +427,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_dev_loss))
         running_train_loss = 0.0
 
-        if ep % 10 == 9:  # for every 10 epochs
+        if ep % 100 == 99:  # for every 100 epochs
             sample_train_output = output[0, :, :, :]
             # save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
@@ -539,15 +563,16 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.5.0"
+    version = "-v2.5.4"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
+    # param_to_load = train_param_path + "unet-v2.5.3_epoch_799.pth"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=True, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=2, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()
