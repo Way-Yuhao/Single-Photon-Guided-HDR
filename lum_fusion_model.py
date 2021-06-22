@@ -305,12 +305,6 @@ class IntensityGuidedHDRNet(nn.Module):
         # final encoders
         self.ConvOut = OneByOneConvBlock(in_ch=2 * main_chs[0], out_ch=main_chs[0])
 
-        """Chrominance Compensation Network"""
-        #                     0    1   2    3
-        # chroma_chs = np.array([3, 16, 64, 128])
-        # self.ChromaConv1 = nn.Conv2d(3, 64, kernel_size=7, padding=)
-
-
     def forward(self, x, y):
         # split color channels
         # x_b, x_g, x_r = _split_chs(x)

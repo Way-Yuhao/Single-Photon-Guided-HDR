@@ -26,14 +26,6 @@ spad_path = "../data/combined_shuffled/SPAD/"
 # spad_path = "../data/small_shuffled/SPAD/"
 
 # TODO: change path back
-
-
-# train_param_path = "./model/unet/"
-# input_path = "../data/hdri_437_256x128_bl/CMOS/"
-# target_path = "../data/hdri_437_256x128_bl/ideal/"
-# spad_path = "../data/hdri_437_256x128_bl/SPAD_RGB/"
-
-
 down_sp_rate = 1  # down sample rate
 
 """Hyper Parameters"""
@@ -43,11 +35,11 @@ init_lr = 0.001  # initial learning rate
 # lr = lr * a, a < 1
 # treid
 # exp, multi-step
-batch_size = 16
+batch_size = 32
 epoch = 1000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
-num_workers_train = 29
-num_workers_val = 7
+num_workers_train = 16
+num_workers_val = 8
 """Simulation Parameters"""
 CMOS_fwc = 33400  # full well capacity of the CMOS sensor
 CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
@@ -68,9 +60,11 @@ def set_device():
     return device
 
 
-def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler=None, _num_workers=0):
+def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler=None, indices=None, _num_workers=0):
     """
     custom dataloader that loads .hdr and .png data.
+    :param _num_workers:
+    :param indices:
     :param input_path_: path to input images
     :param spad_path_: path to spad input images
     :param target_path_: path to target images
@@ -89,7 +83,7 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
 
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_,
-                                     input_transform=transform, target_transform=transform),
+                                     input_transform=transform, target_transform=transform, indices=indices),
         batch_size=batch_size, num_workers=_num_workers, shuffle=False, sampler=sampler)
     return data_loader
 
@@ -390,7 +384,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
     validation_split = .2
-    dataset = customDataFolder.ImageFolder(input_path, spad_path, target_path)
+    dataset = customDataFolder.ImageFolder(input_path, spad_path, target_path, load_all=False)
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     split = int(np.floor(validation_split * dataset_size))
@@ -398,10 +392,12 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     train_sampler = SubsetRandomSampler(train_indices)
     dev_sampler = SubsetRandomSampler(dev_indices)
 
-    train_loader = load_hdr_data(input_path, spad_path, target_path, None, train_sampler, num_workers_train)
-    dev_loader = load_hdr_data(input_path, spad_path, target_path, None, dev_sampler, num_workers_val)
+    train_loader = load_hdr_data(input_path, spad_path, target_path, None, train_sampler, train_indices, num_workers_train)
+    dev_loader = load_hdr_data(input_path, spad_path, target_path, None, dev_sampler, dev_indices, num_workers_val)
 
     print("Using cross-validation with a {:.0%}/{:.0%} train/dev split:".format(1 - validation_split, validation_split))
+    print("dev set: entry {} to {} | train set: entry {} to {}"
+          .format(dev_indices[0], dev_indices[-1], train_indices[0], train_indices[-1]))
     print("size of train set = {} mini-batches | size of dev set = {} mini-batches".format(len(train_loader),
                                                                                            len(dev_loader)))
     num_mini_batches = len(train_loader)
@@ -435,6 +431,8 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
             # save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
             # save_16bit_png(dev_output_sample, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
+            # save_weights(net, ep)
+        if ep % 100 == 99 or True:  # for every 10 epochs
             save_weights(net, ep)
 
     print("finished training")
@@ -487,8 +485,6 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
         if ep % 10 == 9 or True:  # for every 10 epochs
             save_16bit_png(output[0, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(output[0, :, :, :], title="sample training output in epoch {}".format(ep + 1), tone_map=True)
-            save_weights(net, ep)
-        running_loss = 0.0
 
     print("finished training")
     save_16bit_png(target[0, :, :, :], path="./out_files/sample_ground_truth.png")
@@ -566,7 +562,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.6.3"
+    version = "-v2.7.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     # param_to_load = train_param_path + "unet-v2.5.3_epoch_799.pth"

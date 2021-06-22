@@ -3,6 +3,7 @@ from PIL import Image
 import torch
 import torchvision.transforms as transforms
 import cv2
+from tqdm import tqdm
 import os
 import os.path
 import numpy as np
@@ -203,42 +204,92 @@ class ImageFolder(VisionDataset):
             and returns a transformed version.
     """
 
-    def __init__(self, input_dir, spad_dir, target_dir, input_transform=None, spad_transform=None, target_transform=None):
+    def __init__(self, input_dir, spad_dir, target_dir, input_transform=None, spad_transform=None,
+                 target_transform=None, indices=None, load_all=True):
 
-        # removed number_type=int
-        self.inputs = natsorted(os.listdir(input_dir))
-        self.targets = natsorted(os.listdir(target_dir))
-        self.spad_inputs = natsorted(os.listdir(spad_dir))
-        self.input_dir = input_dir
-        self.spad_dir = spad_dir
-        self.target_dir = target_dir
-        if input_transform is not None:
-            self.input_transform = input_transform
-        else:
-            self.input_transform = transforms.Compose([transforms.ToTensor()])
-        if spad_transform is not None:
-            self.spad_transform = spad_transform
-        else:
-            self.spad_transform = transforms.Compose([transforms.ToTensor()])
-        if target_transform is not None:
-            self.target_transform = target_transform
-        else:
-            self.target_transform = transforms.Compose([transforms.ToTensor()])
-        self.check_files()
+        self.load_all = load_all
+        if not self.load_all:
+            # removed number_type=int
+            self.inputs = natsorted(os.listdir(input_dir))
+            self.targets = natsorted(os.listdir(target_dir))
+            self.spad_inputs = natsorted(os.listdir(spad_dir))
+            self.input_dir = input_dir
+            self.spad_dir = spad_dir
+            self.target_dir = target_dir
+            if input_transform is not None:
+                self.input_transform = input_transform
+            else:
+                self.input_transform = transforms.Compose([transforms.ToTensor()])
+            if spad_transform is not None:
+                self.spad_transform = spad_transform
+            else:
+                self.spad_transform = transforms.Compose([transforms.ToTensor()])
+            if target_transform is not None:
+                self.target_transform = target_transform
+            else:
+                self.target_transform = transforms.Compose([transforms.ToTensor()])
+            self.check_files()
+        else:  # load entire dataset to mem
+            print("loading entire dataset to memory")
+            self.inputs = natsorted(os.listdir(input_dir))
+            self.targets = natsorted(os.listdir(target_dir))
+            self.spad_inputs = natsorted(os.listdir(spad_dir))
+            self.input_dir = input_dir
+            self.spad_dir = spad_dir
+            self.target_dir = target_dir
+            if input_transform is not None:
+                self.input_transform = input_transform
+            else:
+                self.input_transform = transforms.Compose([transforms.ToTensor()])
+            if spad_transform is not None:
+                self.spad_transform = spad_transform
+            else:
+                self.spad_transform = transforms.Compose([transforms.ToTensor()])
+            if target_transform is not None:
+                self.target_transform = target_transform
+            else:
+                self.target_transform = transforms.Compose([transforms.ToTensor()])
+
+            self.dataset = []
+            self.indices = indices
+            self.check_files()
+            entries = natsorted(os.listdir(input_dir))
+            for i in tqdm(range(len(entries))):
+                if i in self.indices:
+                    input_sample = cv_loader(self.input_dir + self.inputs[i])
+                    spad_sample = cv_loader(self.spad_dir + self.spad_inputs[i])
+                    target_sample = cv_loader(self.target_dir + self.targets[i])
+                    self.dataset.append([input_sample, spad_sample, target_sample])
+                else:
+                    self.dataset.append(None)
+            print("successfully loaded dataset to memory")
         return
 
     def __len__(self):
         return len(self.inputs)
 
     def __getitem__(self, item):
-        input_sample = cv_loader(self.input_dir + self.inputs[item])
-        spad_sample = cv_loader(self.spad_dir + self.spad_inputs[item])
-        target_sample = cv_loader(self.target_dir + self.targets[item])
-        input_sample = self.input_transform(input_sample)
-        spad_sample = self.spad_transform(spad_sample)
-        target_sample = self.target_transform(target_sample)
-        input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
-        input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
+        if not self.load_all:
+            input_sample = cv_loader(self.input_dir + self.inputs[item])
+            spad_sample = cv_loader(self.spad_dir + self.spad_inputs[item])
+            target_sample = cv_loader(self.target_dir + self.targets[item])
+            input_sample = self.input_transform(input_sample)
+            spad_sample = self.spad_transform(spad_sample)
+            target_sample = self.target_transform(target_sample)
+            input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
+            input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
+        else:
+            input_sample = self.dataset[item][0]
+            spad_sample = self.dataset[item][1]
+            target_sample = self.dataset[item][2]
+            input_sample = self.input_transform(input_sample)
+            spad_sample = self.spad_transform(spad_sample)
+            target_sample = self.target_transform(target_sample)
+            input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
+            input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
+
+            # disp_sample(input_sample, spad_sample, None, target_sample)
+            # raise Exception()
 
         # spad_sample = spad_sample[1, :, :].unsqueeze(dim=0)  # only keep one channel
 
