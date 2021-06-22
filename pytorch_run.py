@@ -17,13 +17,13 @@ from vgg_perceptual_loss import VGGPerceptualLoss
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 train_param_path = "./model/unet/"
-input_path = "../data/combined_shuffled/CMOS/"
-target_path = "../data/combined_shuffled/ideal/"
-spad_path = "../data/combined_shuffled/SPAD/"
+# input_path = "../data/combined_shuffled/CMOS/"
+# target_path = "../data/combined_shuffled/ideal/"
+# spad_path = "../data/combined_shuffled/SPAD/"
 
-# input_path = "../data/small_shuffled/CMOS/"
-# target_path = "../data/small_shuffled/ideal/"
-# spad_path = "../data/small_shuffled/SPAD/"
+input_path = "../data/small_shuffled/CMOS/"
+target_path = "../data/small_shuffled/ideal/"
+spad_path = "../data/small_shuffled/SPAD/"
 
 # TODO: change path back
 down_sp_rate = 1  # down sample rate
@@ -158,7 +158,7 @@ def compute_l1_perc(output, target, vgg_net):
     with torch.no_grad():
         perc_loss = vgg_net(output, target)
 
-    total_loss = l1_loss + .03 * perc_loss
+    total_loss = l1_loss + .3 * perc_loss
     return total_loss
 
 
