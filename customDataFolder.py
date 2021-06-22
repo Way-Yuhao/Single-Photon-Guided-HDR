@@ -204,9 +204,11 @@ class ImageFolder(VisionDataset):
     """
 
     def __init__(self, input_dir, spad_dir, target_dir, input_transform=None, spad_transform=None, target_transform=None):
-        self.inputs = natsorted(os.listdir(input_dir), number_type=int)
-        self.targets = natsorted(os.listdir(target_dir), number_type=int)
-        self.spad_inputs = natsorted(os.listdir(spad_dir), number_type=int)
+
+        # removed number_type=int
+        self.inputs = natsorted(os.listdir(input_dir))
+        self.targets = natsorted(os.listdir(target_dir))
+        self.spad_inputs = natsorted(os.listdir(spad_dir))
         self.input_dir = input_dir
         self.spad_dir = spad_dir
         self.target_dir = target_dir
