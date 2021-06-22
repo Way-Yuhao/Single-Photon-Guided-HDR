@@ -349,7 +349,7 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
             input_, spad, target = dev_iter.next()
             input_, spad, target = input_.to(device), spad.to(device), target.to(device)
             output = net(input_, spad)
-            loss = compute_l1_loss(output, target)
+            loss = compute_l1_perc(output, target)
             running_loss += loss.item()
         # record loss values
         dev_loss = running_loss / num_mini_batches
