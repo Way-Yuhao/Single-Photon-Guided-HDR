@@ -13,6 +13,7 @@ from lum_fusion_model import IntensityGuidedHDRNet
 import customDataFolder
 from radiance_writer import radiance_writer
 from vgg_perceptual_loss import VGGPerceptualLoss
+from external.vgg import VGGLoss
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
@@ -165,7 +166,7 @@ def compute_l1_perc(output, target, vgg_net):
     with torch.no_grad():
         perc_loss = vgg_net(output, target)
 
-    total_loss = l1_loss + .1 * perc_loss
+    total_loss = l1_loss + 10 * perc_loss
     return total_loss
 
 
@@ -385,7 +386,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     net.train()
 
     # init vgg net
-    vgg_net = VGGPerceptualLoss()
+    vgg_net = VGGLoss()
     vgg_net.to(device)
 
     if load_weights:
@@ -432,7 +433,8 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         cur_train_loss = running_train_loss / num_mini_batches
         tb.add_scalar('loss/train', cur_train_loss, ep)
         cur_dev_loss, dev_output_sample = dev(net, device, dev_loader, ep, tb, 0, vgg_net)
-        print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_dev_loss))
+        print("train loss = {:.3f} | dev loss = {:.3f} | learning rate = {:.5f}"
+              .format(cur_train_loss, cur_dev_loss, scheduler.get_lr()))
         running_train_loss = 0.0
 
         scheduler.step()
@@ -576,7 +578,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.7.3"
+    version = "-v2.8.1"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     # param_to_load = train_param_path + "unet-v2.5.3_epoch_799.pth"
@@ -584,8 +586,8 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()

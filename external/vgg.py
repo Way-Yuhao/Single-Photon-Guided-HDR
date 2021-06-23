@@ -21,7 +21,6 @@ class Vgg19(torch.nn.Module):
         for x in range(2, 7):
             self.slice2.add_module(str(x), vgg_pretrained_features[x])
         for x in range(7, 12):
-        for x in range(7, 12):
             self.slice3.add_module(str(x), vgg_pretrained_features[x])
         for x in range(12, 21):
             self.slice4.add_module(str(x), vgg_pretrained_features[x])
