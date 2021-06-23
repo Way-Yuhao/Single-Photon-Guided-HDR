@@ -576,7 +576,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.7.2"
+    version = "-v2.7.3"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     # param_to_load = train_param_path + "unet-v2.5.3_epoch_799.pth"
