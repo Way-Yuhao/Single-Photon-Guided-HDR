@@ -45,7 +45,7 @@ num_workers_train = 0
 num_workers_val = 0
 batch_size = 16
 
-epoch = 2000
+epoch = 500
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 """Simulation Parameters"""
 CMOS_fwc = 33400  # full well capacity of the CMOS sensor
@@ -166,7 +166,7 @@ def compute_l1_perc(output, target, vgg_net):
     with torch.no_grad():
         perc_loss = vgg_net(output, target)
 
-    total_loss = l1_loss + 10 * perc_loss
+    total_loss = l1_loss + .1 * perc_loss
     return total_loss
 
 
@@ -411,7 +411,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
                                                                                            len(dev_loader)))
     num_mini_batches = len(train_loader)
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 500, 1000, 1500], gamma=.8)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[500, 1000, 1500], gamma=.8)
 
     # training loop
     running_train_loss = 0.0
@@ -434,7 +434,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         tb.add_scalar('loss/train', cur_train_loss, ep)
         cur_dev_loss, dev_output_sample = dev(net, device, dev_loader, ep, tb, 0, vgg_net)
         print("train loss = {:.3f} | dev loss = {:.3f} | learning rate = {:.5f}"
-              .format(cur_train_loss, cur_dev_loss, scheduler.get_lr()))
+              .format(cur_train_loss, cur_dev_loss, scheduler.get_lr()[0]))
         running_train_loss = 0.0
 
         scheduler.step()
@@ -578,16 +578,16 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.8.1"
+    version = "-v2.8.8"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
-    # param_to_load = train_param_path + "unet-v2.5.3_epoch_799.pth"
+    param_to_load = train_param_path + "unet-v2.8.7_epoch_1599.pth"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=True, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=17, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()

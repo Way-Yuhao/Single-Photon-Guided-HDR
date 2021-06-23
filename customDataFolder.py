@@ -112,9 +112,14 @@ def normalize(input_, spad, target):
     :param target: target tensor. Expects original label image files to be 32-bit .hdr (float32)
     :return: normalized input and label
     """
-    input_ = input_ / CMOS_sat
-    spad = spad / CMOS_sat
-    target = target / CMOS_sat
+    input_ = input_ / CMOS_sat * 255
+    spad = spad / CMOS_sat * 255
+    target = target / CMOS_sat * 255
+
+    # input_ = input_ / 2**16
+    # spad = spad / 2**16
+    # target = target / 2**16
+
     return input_, spad, target
 
 
