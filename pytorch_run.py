@@ -45,7 +45,7 @@ num_workers_train = 0
 num_workers_val = 0
 batch_size = 16
 
-epoch = 500
+epoch = 2000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
 """Simulation Parameters"""
 CMOS_fwc = 33400  # full well capacity of the CMOS sensor
@@ -439,7 +439,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
 
         scheduler.step()
 
-        if ep % 10 == 9:  # for every 10 epochs
+        if ep % 20 == 19:  # for every 10 epochs
             sample_train_output = output[0, :, :, :]
             # save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
@@ -587,7 +587,7 @@ def main():
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=True, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=17, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()
