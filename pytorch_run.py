@@ -165,7 +165,7 @@ def compute_l1_perc(output, target, vgg_net):
     with torch.no_grad():
         perc_loss = vgg_net(output, target)
 
-    total_loss = l1_loss + .3 * perc_loss
+    total_loss = l1_loss + .1 * perc_loss
     return total_loss
 
 
@@ -410,6 +410,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
                                                                                            len(dev_loader)))
     num_mini_batches = len(train_loader)
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 500, 1000, 1500], gamma=.8)
 
     # training loop
     running_train_loss = 0.0
@@ -433,6 +434,8 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         cur_dev_loss, dev_output_sample = dev(net, device, dev_loader, ep, tb, 0, vgg_net)
         print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_dev_loss))
         running_train_loss = 0.0
+
+        scheduler.step()
 
         if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = output[0, :, :, :]
