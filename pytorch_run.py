@@ -35,11 +35,17 @@ init_lr = 0.001  # initial learning rate
 # lr = lr * a, a < 1
 # treid
 # exp, multi-step
-batch_size = 32
-epoch = 1000
+
+# num_workers_train = 16
+# num_workers_val = 8
+# batch_size = 32
+
+num_workers_train = 0
+num_workers_val = 0
+batch_size = 16
+
+epoch = 2000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
-num_workers_train = 16
-num_workers_val = 8
 """Simulation Parameters"""
 CMOS_fwc = 33400  # full well capacity of the CMOS sensor
 CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
@@ -60,7 +66,8 @@ def set_device():
     return device
 
 
-def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler=None, indices=None, _num_workers=0):
+def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler=None, indices=None,
+                  _num_workers=0, load_all=True):
     """
     custom dataloader that loads .hdr and .png data.
     :param _num_workers:
@@ -82,8 +89,8 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     # ])
 
     data_loader = torch.utils.data.DataLoader(
-        customDataFolder.ImageFolder(input_path_, spad_path_, target_path_,
-                                     input_transform=transform, target_transform=transform, indices=indices),
+        customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform,
+                                     target_transform=transform, indices=indices, load_all=load_all),
         batch_size=batch_size, num_workers=_num_workers, shuffle=False, sampler=sampler)
     return data_loader
 
@@ -328,9 +335,10 @@ def median_filter(img):
     return cv2.medianBlur(img, 3)
 
 
-def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
+def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0, vgg_net=None):
     """
     computes the loss on the dev set, without backprop
+    :param vgg_net:
     :param net: pytorch model object
     :param device: CUDA device, if available
     :param dev_loader: dev set data loader
@@ -349,7 +357,7 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0):
             input_, spad, target = dev_iter.next()
             input_, spad, target = input_.to(device), spad.to(device), target.to(device)
             output = net(input_, spad)
-            loss = compute_l1_perc(output, target)
+            loss = compute_l1_perc(output, target, vgg_net)
             running_loss += loss.item()
         # record loss values
         dev_loss = running_loss / num_mini_batches
@@ -422,17 +430,17 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         # record loss values after each epoch
         cur_train_loss = running_train_loss / num_mini_batches
         tb.add_scalar('loss/train', cur_train_loss, ep)
-        cur_dev_loss, dev_output_sample = dev(net, device, dev_loader, ep, tb)
+        cur_dev_loss, dev_output_sample = dev(net, device, dev_loader, ep, tb, 0, vgg_net)
         print("train loss = {:.3f} | dev loss = {:.3f}".format(cur_train_loss, cur_dev_loss))
         running_train_loss = 0.0
 
-        if ep % 10 == 9:  # for every 100 epochs
+        if ep % 10 == 9:  # for every 10 epochs
             sample_train_output = output[0, :, :, :]
             # save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
             disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
             # save_16bit_png(dev_output_sample, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
             # save_weights(net, ep)
-        if ep % 100 == 99 or True:  # for every 10 epochs
+        if ep % 100 == 99:  # for every 100 epochs
             save_weights(net, ep)
 
     print("finished training")
@@ -529,8 +537,11 @@ def show_predictions(net, target_idx, pre_trained_params_path):
     global batch_size
     batch_size = 1
     load_network_weights(net, pre_trained_params_path)
-    test_loader = load_hdr_data(input_path, spad_path, target_path)
+    test_loader = load_hdr_data(input_path, spad_path, target_path, load_all=False)
     test_iter = iter(test_loader)
+
+    vgg_net = VGGPerceptualLoss()
+    # vgg_net.to(device)
 
     if target_idx is -1:  # batch
         show_pred_all(net, test_iter, len(test_loader))
@@ -540,7 +551,7 @@ def show_predictions(net, target_idx, pre_trained_params_path):
         with torch.no_grad():
             input_, spad, target = select_example(test_iter, target_idx)
             output = net(input_, spad)
-            loss = compute_l1_loss(output, target)
+            loss = compute_l1_perc(output, target, vgg_net)
 
         print("loss at test time = ", loss.item())
 
@@ -562,7 +573,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.7.0"
+    version = "-v2.7.2"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     # param_to_load = train_param_path + "unet-v2.5.3_epoch_799.pth"
@@ -570,8 +581,8 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=2, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=3, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()
