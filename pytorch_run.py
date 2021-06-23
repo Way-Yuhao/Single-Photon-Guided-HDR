@@ -585,7 +585,7 @@ def main():
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=3, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=18, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()
