@@ -556,6 +556,9 @@ def show_predictions(net, target_idx, pre_trained_params_path):
         with torch.no_grad():
             input_, spad, target = select_example(test_iter, target_idx)
             output = net(input_, spad)
+
+            print(output.shape)
+
             loss = compute_l1_perc(output, target, vgg_net)
 
         print("loss at test time = ", loss.item())

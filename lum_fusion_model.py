@@ -79,7 +79,7 @@ class AttentionBlock(nn.Module):
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
         out = x * psi
-        return out
+        return out, psi
 
 
 class LumFusionNet(nn.Module):
@@ -358,10 +358,12 @@ class IntensityGuidedHDRNet(nn.Module):
         d3 = self.DeConv4(d4, y4, e4)
         d2 = self.DeConv3(d3, y3, e3)
         d1 = self.DeConv2(d2, y2, e2)
-        e1_att = self.Att1(g=d1, x=e1)
+        e1_att, _ = self.Att1(g=d1, x=e1)
         d0 = self.DeConv1(d1, e1_att)
 
         # final encodings
-        x_att = self.Att0(g=d0, x=x)
+        x_att, mask = self.Att0(g=d0, x=x)
         out = self.ConvOut(d0, x_att)
+
+        # mask = torch.cat((mask, mask, mask), dim=1)
         return out
