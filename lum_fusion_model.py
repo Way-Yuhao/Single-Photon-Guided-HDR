@@ -206,6 +206,8 @@ class OneByOneConvBlock(nn.Module):
         return x
 
 
+
+
 class DeConvBlock(nn.Module):
 
     def __init__(self, in_ch, out_ch, output_size, f=3):
@@ -214,12 +216,19 @@ class DeConvBlock(nn.Module):
         # de_conv_temp = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=f, stride=2, padding=1)
         # de_conv_layer = DeConvLayer(de_conv_temp, output_size=output_size)
         de_conv_layer = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=4, stride=2, padding=1)
-
         self.de = nn.Sequential(
             nn.Conv2d(in_ch, in_ch, kernel_size=1, bias=True),
             de_conv_layer,
             nn.InstanceNorm2d(out_ch),
             nn.ReLU(inplace=True))  # at discretion
+
+        # new
+        self.resize = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode='bilinear'),
+            nn.ReflectionPad2d(1),
+            nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=1, padding=0),
+            nn.ReLU(inplace=True)  # at discretion
+        )
 
     def forward(self, d, y=None, e=None):
         """
@@ -232,7 +241,8 @@ class DeConvBlock(nn.Module):
             d = torch.cat((e, d), dim=1)
         if y is not None:
             d = torch.cat((d, y), dim=1)
-        out = self.de(d)
+        # out = self.de(d)
+        out = self.resize(d)
         return out
 
 
@@ -246,6 +256,24 @@ class DeConvLayer(nn.Module):
     def forward(self, x):
         x = self.conv(x, output_size=self.output_size)
         return x
+
+
+class UpsampleBlock(nn.Module):
+    """
+    https://github.com/bguisard/SuperResolution/blob/master/model.py
+    Upsample block suggested by [2] to remove checkerboard pattern from images
+    """
+    def __init__(self, num, use_cuda=False):
+        super(UpsampleBlock, self).__init__()
+        self.up1 = nn.UpsamplingNearest2d(scale_factor=2)
+        self.c2 = nn.Conv2d(num, num, kernel_size=3, stride=1, padding=0)
+        self.b3 = nn.BatchNorm2d(num)
+
+    def forward(self, x):
+        h = self.up1(x)
+        h = F.pad(h, (1, 1, 1, 1), mode='reflect')
+        h = self.b3(self.c2(h))
+        return F.relu(h)
 
 
 def _split_chs(img):
