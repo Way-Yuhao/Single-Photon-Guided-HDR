@@ -6,7 +6,7 @@ import numpy as np
 path_1 = "../simulated_outputs/collection/HDRI"
 path_2 = "../simulated_outputs/collection/indoor"
 path_3 = "../simulated_outputs/collection/MATLAB_3x3"
-path_target = "../simulated_outputs/combined"
+path_combined = "../simulated_outputs/combined"
 path_shuf = "../simulated_outputs/combined_shuffled"
 
 composition = ("CMOS", "SPAD", "ideal", "plt")
@@ -35,11 +35,11 @@ def combine(global_counter, folder):
             print("global counter = ", global_counter)
             break
         else:
-            os.rename(cmos, p.join(path_target, "CMOS", "{}_cmos.hdr".format(global_counter)))
-            os.rename(spad, p.join(path_target, "SPAD", "{}_spad.hdr".format(global_counter)))
-            os.rename(ideal, p.join(path_target, "ideal", "{}_gt.hdr".format(global_counter)))
-            os.rename(plt, p.join(path_target, "plt", "plt_{}.png".format(global_counter)))
-            # print(p.join(path_target, "CMOS", "{}_cmos.png".format(global_counter)))
+            os.rename(cmos, p.join(path_combined, "CMOS", "{}_cmos.hdr".format(global_counter)))
+            os.rename(spad, p.join(path_combined, "SPAD", "{}_spad.hdr".format(global_counter)))
+            os.rename(ideal, p.join(path_combined, "ideal", "{}_gt.hdr".format(global_counter)))
+            os.rename(plt, p.join(path_combined, "plt", "plt_{}.png".format(global_counter)))
+            print("{} -> {}".format(counter, global_counter))
 
         counter += 1
         global_counter += 1
@@ -48,14 +48,14 @@ def combine(global_counter, folder):
 
 
 def shuffle():
-    count = 668
+    count = 561
     perm = np.random.permutation(count)
     seq_idx = 0
     for i in perm:
-        cmos = p.join(path_target, composition[0], "{}_cmos.hdr".format(seq_idx))
-        spad = p.join(path_target, composition[1], "{}_spad.hdr".format(seq_idx))
-        ideal = p.join(path_target, composition[2], "{}_gt.hdr".format(seq_idx))
-        plt = p.join(path_target, composition[3], "plt_{}.png".format(seq_idx))
+        cmos = p.join(path_combined, composition[0], "{}_cmos.hdr".format(seq_idx))
+        spad = p.join(path_combined, composition[1], "{}_spad.hdr".format(seq_idx))
+        ideal = p.join(path_combined, composition[2], "{}_gt.hdr".format(seq_idx))
+        plt = p.join(path_combined, composition[3], "plt_{}.png".format(seq_idx))
 
         cmos_shuff = p.join(path_shuf, composition[0], "{}_cmos.hdr".format(i))
         spad_shuff = p.join(path_shuf, composition[1], "{}_spad.hdr".format(i))
@@ -66,6 +66,7 @@ def shuffle():
         os.rename(spad, spad_shuff)
         os.rename(ideal, ideal_shuff)
         os.rename(plt, plt_shuff)
+        print("{} -> {}".format(seq_idx, i))
         seq_idx += 1
 
 
@@ -73,7 +74,27 @@ def test():
     print(np.random.permutation(10))
 
 
+def init():
+    out_path = "../simulated_outputs/"
+    if p.exists(path_combined) or p.exists(path_shuf):
+        raise FileExistsError("ERROR: directory shuffled or combined already exists. Please remove.".format(out_path))
+
+    os.mkdir(path_combined)
+    os.mkdir(p.join(path_combined, "CMOS"))
+    os.mkdir(p.join(path_combined, "SPAD"))
+    os.mkdir(p.join(path_combined, "ideal"))
+    os.mkdir(p.join(path_combined, "plt"))
+
+    os.mkdir(path_shuf)
+    os.mkdir(p.join(path_shuf, "CMOS"))
+    os.mkdir(p.join(path_shuf, "SPAD"))
+    os.mkdir(p.join(path_shuf, "ideal"))
+    os.mkdir(p.join(path_shuf, "plt"))
+    return
+
+
 def main():
+    # init()
     # counter = 0
     # counter = combine(counter, path_1)
     # counter = combine(counter, path_2)

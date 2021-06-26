@@ -27,11 +27,6 @@ SPAD_T = .01               # exposure time in seconds
 SPAD_tau = 150e-9          # dead time in seconds
 SPAD_down_sample_rate = 4  # spatial down sampling rate of the sensor
 # SPAD_qe = .4               # quantum efficiency index
-
-# QE_SPAD_R = .15
-# QE_SPAD_G = .25
-# QE_SPAD_B = .4
-
 SPAD_qe = {                 # quantum efficiency index for each color channel
     'r': .15,
     'g': .25,
@@ -86,9 +81,8 @@ def scale_flux(flux):
     scales the flux matrix by a constant
     :return: scaled ground truth matrix
     """
-    flux *= 10
-    # flux *= 1e5  # HDRI
-    flux *= 1e7  # Laval Indoor
+    flux *= 1e6 * 5  # HDRI
+    # flux *= 1e7 * 10 # Laval Indoor
     # flux *= 5e4  # HDR_MATLAB_3x3
     return flux
 
@@ -157,11 +151,13 @@ def init():
 
 
 def main():
+    # TODO: remember to correct scaling
     init()
-    run(collection_path + "100samplesDataset")
-    # run(collection_path + "HDRI_4k")
+    # run(collection_path + "100samplesDataset")
+    run(collection_path + "HDRI_4k")
     # run(collection_path + "HDR_MATLAB_3x3")
     # run(artificial_path)
+
 
 if __name__ == "__main__":
     main()

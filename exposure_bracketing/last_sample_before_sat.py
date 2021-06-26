@@ -64,8 +64,8 @@ def save(img, idx, mode="png", gamma=2.2):
 def run():
     global out_path
     out_path = "../simulated_outputs/artificial/"
-    path1 = "../simulated_outputs/artificial/log_out/0_cmos_.000001s.png"
-    path2 = "../simulated_outputs/artificial/log_out/0_cmos_.01s.png"
+    path1 = "../simulated_outputs/artificial/log_out/0_cmos_.000001s.hdr"
+    path2 = "../simulated_outputs/artificial/log_out/0_cmos_.01s.hdr"
     # path1 = "../simulated_outputs/artificial/log_out/0_gt_.000001s.hdr"
     # path2 = "../simulated_outputs/artificial/log_out/0_gt_.01s.hdr"
 
@@ -73,7 +73,8 @@ def run():
     img2 = cv2.imread(path1, -1).astype('float64')
     img1 = cv2.imread(path2, -1).astype('float64')
     merged = last_sample_before_sat_scaling(img1, img2, 1000000)
-    save(merged, 0, "png", gamma=4)
+    save(merged, 0, "hdr", gamma=4)
+
 
 def run_all():
     global out_path

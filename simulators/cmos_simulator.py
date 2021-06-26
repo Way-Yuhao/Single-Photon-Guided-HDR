@@ -50,7 +50,7 @@ class CMOSSimulator(object):
         # img[img >= self.fwc] = self.fwc
 
         self.img = img
-        self.smart_fwc()
+        self.smart_fwc2()
 
         # img[img < 1.0] = 0   # FIXME: might be an issue
         # self.img = img  # TODO: restore this
@@ -70,6 +70,16 @@ class CMOSSimulator(object):
 
         self.img = img
 
+    def smart_fwc2(self):
+        img = self.img
+        sat_val = self.q * self.fwc
+        sat_p = np.array([[sat_val]])
+        sat_r = np.repeat(sat_p, repeats=img.shape[1], axis=1)
+        sat = np.repeat(sat_r, repeats=img.shape[0], axis=0)
+        # print(sat.shape)
+        ind = img > sat
+        img[ind] = sat[ind]
+        return img
 
     def white_balance(self, T):
         img = self.img
