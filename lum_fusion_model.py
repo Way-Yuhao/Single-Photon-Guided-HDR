@@ -303,7 +303,8 @@ class IntensityGuidedHDRNet(nn.Module):
         """Up Sampling and Luminance Fusion Network"""
         # layer depth #      0    1    2    3    4    5     6
         main_chs = np.array([3,  64, 128, 256, 512, 512, 1024])   # number of output channels for main encoder
-        side_chs = np.array([-1,  3,   4,  16,  64, 128,   -1])   # number of output channels for side encoder
+        # side_chs = np.array([-1,  3,   4,  16,  64, 128,   -1])   # number of output channels for side encoder
+        side_chs = np.array([-1,  3,  64,  128, 256, 512, -1])  # number of output channels for side encoder
         h =       np.array([128, 64,  32,  16,   8,   4,    2])   # height of tensors
 
         # encoder (VGG16 + extra Conv layer)

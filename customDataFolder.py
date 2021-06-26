@@ -106,7 +106,7 @@ def down_sample(input_, target, down_sp_rate):
 
 def normalize(input_, spad, target):
     """
-    normalizes input to [0, 1], spad and target to [0, >1]
+    normalizes input to [0, 255], spad and target to [0, >255]
     :param input_: input tensor. Expects original input image files to be 16-bit PNG (uint16)
     :param spad: side input tensor. Expects original input image files to be 32-bit .hdr (float32)
     :param target: target tensor. Expects original label image files to be 32-bit .hdr (float32)

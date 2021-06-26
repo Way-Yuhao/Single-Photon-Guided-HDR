@@ -39,7 +39,7 @@ init_lr = 0.001  # initial learning rate
 
 # num_workers_train = 16
 # num_workers_val = 8
-# batch_size = 32
+# batch_size = 20
 
 num_workers_train = 0
 num_workers_val = 0
@@ -581,7 +581,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.9.3"
+    version = "-v2.13.2"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     # param_to_load = train_param_path + "unet-v2.8.7_epoch_1599.pth"
@@ -589,8 +589,8 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=15, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=15, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()
