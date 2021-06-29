@@ -185,6 +185,26 @@ def data_augmentation(input_, spad, target):
     return input_, spad, target
 
 
+def cvt_monochrome(input_, spad, target):
+    """
+    converts BGR color image to monochrome. The output contains 3 copies of green channel
+    :param input_:
+    :param spad:
+    :param target:
+    :return:
+    """
+    input_ = input_[1, :, :]
+    input_ = torch.stack((input_, input_, input_), dim=0)
+
+    spad = spad[1, :, :]
+    spad = torch.stack((spad, spad, spad), dim=0)
+
+    target = target[1, :, :]
+    target = torch.stack((target, target, target), dim=0)
+
+    return input_, spad, target
+
+
 class ImageFolder(VisionDataset):
     """A generic data loader where the images are arranged in this way:
 
@@ -210,54 +230,34 @@ class ImageFolder(VisionDataset):
     """
 
     def __init__(self, input_dir, spad_dir, target_dir, input_transform=None, spad_transform=None,
-                 target_transform=None, indices=None, load_all=True):
+                 target_transform=None, indices=None, load_all=True, monochrome=False):
 
         self.load_all = load_all
-        if not self.load_all:
-            # removed number_type=int
-            self.inputs = natsorted(os.listdir(input_dir))
-            self.targets = natsorted(os.listdir(target_dir))
-            self.spad_inputs = natsorted(os.listdir(spad_dir))
-            self.input_dir = input_dir
-            self.spad_dir = spad_dir
-            self.target_dir = target_dir
-            if input_transform is not None:
-                self.input_transform = input_transform
-            else:
-                self.input_transform = transforms.Compose([transforms.ToTensor()])
-            if spad_transform is not None:
-                self.spad_transform = spad_transform
-            else:
-                self.spad_transform = transforms.Compose([transforms.ToTensor()])
-            if target_transform is not None:
-                self.target_transform = target_transform
-            else:
-                self.target_transform = transforms.Compose([transforms.ToTensor()])
-            self.check_files()
-        else:  # load entire dataset to mem
-            print("loading entire dataset to memory")
-            self.inputs = natsorted(os.listdir(input_dir))
-            self.targets = natsorted(os.listdir(target_dir))
-            self.spad_inputs = natsorted(os.listdir(spad_dir))
-            self.input_dir = input_dir
-            self.spad_dir = spad_dir
-            self.target_dir = target_dir
-            if input_transform is not None:
-                self.input_transform = input_transform
-            else:
-                self.input_transform = transforms.Compose([transforms.ToTensor()])
-            if spad_transform is not None:
-                self.spad_transform = spad_transform
-            else:
-                self.spad_transform = transforms.Compose([transforms.ToTensor()])
-            if target_transform is not None:
-                self.target_transform = target_transform
-            else:
-                self.target_transform = transforms.Compose([transforms.ToTensor()])
+        self.inputs = natsorted(os.listdir(input_dir))
+        self.targets = natsorted(os.listdir(target_dir))
+        self.spad_inputs = natsorted(os.listdir(spad_dir))
+        self.input_dir = input_dir
+        self.spad_dir = spad_dir
+        self.target_dir = target_dir
+        self.isMonochrome = monochrome
 
+        if input_transform is not None:
+            self.input_transform = input_transform
+        else:
+            self.input_transform = transforms.Compose([transforms.ToTensor()])
+        if spad_transform is not None:
+            self.spad_transform = spad_transform
+        else:
+            self.spad_transform = transforms.Compose([transforms.ToTensor()])
+        if target_transform is not None:
+            self.target_transform = target_transform
+        else:
+            self.target_transform = transforms.Compose([transforms.ToTensor()])
+        self.check_files()
+
+        if self.load_all:
             self.dataset = []
             self.indices = indices
-            self.check_files()
             entries = natsorted(os.listdir(input_dir))
             for i in tqdm(range(len(entries))):
                 if i in self.indices:
@@ -278,33 +278,24 @@ class ImageFolder(VisionDataset):
             input_sample = cv_loader(self.input_dir + self.inputs[item])
             spad_sample = cv_loader(self.spad_dir + self.spad_inputs[item])
             target_sample = cv_loader(self.target_dir + self.targets[item])
-            input_sample = self.input_transform(input_sample)
-            spad_sample = self.spad_transform(spad_sample)
-            target_sample = self.target_transform(target_sample)
-            input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
-            input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
         else:
             input_sample = self.dataset[item][0]
             spad_sample = self.dataset[item][1]
             target_sample = self.dataset[item][2]
-            input_sample = self.input_transform(input_sample)
-            spad_sample = self.spad_transform(spad_sample)
-            target_sample = self.target_transform(target_sample)
-            input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
-            input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
 
-            # disp_sample(input_sample, spad_sample, None, target_sample)
-            # raise Exception()
-
-        # spad_sample = spad_sample[1, :, :].unsqueeze(dim=0)  # only keep one channel
-
-        # TODO: remove this (monochrome)
-        # input_sample = input_sample[1, :, :]
-        # input_sample = torch.stack((input_sample, input_sample, input_sample), dim=0)
-        # target_sample = target_sample[1, :, :]
-        # target_sample = torch.stack((target_sample, target_sample, target_sample), dim=0)
+        input_sample = self.input_transform(input_sample)
+        spad_sample = self.spad_transform(spad_sample)
+        target_sample = self.target_transform(target_sample)
+        input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
+        input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
+        if self.isMonochrome:
+            input_sample, spad_sample, target_sample = cvt_monochrome(input_sample, spad_sample, target_sample)
 
         return input_sample, spad_sample, target_sample
+
+        # disp_sample(input_sample, spad_sample, None, target_sample)
+        # raise Exception()
+        # spad_sample = spad_sample[1, :, :].unsqueeze(dim=0)  # only keep one channel
 
     def check_files(self):
         # check file extensions

@@ -17,36 +17,35 @@ from external.vgg import VGGLoss
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
+monochrome = True  # True if in monochromatic mode
+mini_model = True
 train_param_path = "./model/unet/"
-input_path = "../data/combined_shuffled/CMOS/"
-target_path = "../data/combined_shuffled/ideal/"
-spad_path = "../data/combined_shuffled/SPAD/"
 
-# input_path = "../data/small_shuffled/CMOS/"
-# target_path = "../data/small_shuffled/ideal/"
-# spad_path = "../data/small_shuffled/SPAD/"
+if mini_model:
+    input_path = "../data/small_shuffled/CMOS/"
+    target_path = "../data/small_shuffled/ideal/"
+    spad_path = "../data/small_shuffled/SPAD/"
 
-# TODO: change path back
+else:
+    input_path = "../data/combined_shuffled/CMOS/"
+    target_path = "../data/combined_shuffled/ideal/"
+    spad_path = "../data/combined_shuffled/SPAD/"
+
 down_sp_rate = 1  # down sample rate
 
 """Hyper Parameters"""
 init_lr = 0.001  # initial learning rate
-# .01 .05 .02
-# after each 100, 50, 10, epoch
-# lr = lr * a, a < 1
-# treid
-# exp, multi-step
-
-num_workers_train = 16
-num_workers_val = 8
-batch_size = 20
-
-# num_workers_train = 0
-# num_workers_val = 0
-# batch_size = 16
-
 epoch = 2000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
+if mini_model:
+    num_workers_train = 0
+    num_workers_val = 0
+    batch_size = 16
+else:
+    num_workers_train = 16
+    num_workers_val = 8
+    batch_size = 20
+
 """Simulation Parameters"""
 CMOS_fwc = 33400  # full well capacity of the CMOS sensor
 CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
@@ -91,7 +90,8 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
 
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform,
-                                     target_transform=transform, indices=indices, load_all=load_all),
+                                     target_transform=transform, indices=indices, load_all=load_all,
+                                     monochrome=monochrome),
         batch_size=batch_size, num_workers=_num_workers, shuffle=False, sampler=sampler)
     return data_loader
 
@@ -590,7 +590,7 @@ def main():
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=True, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=0, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=1, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()
