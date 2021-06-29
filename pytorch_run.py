@@ -18,13 +18,13 @@ from external.vgg import VGGLoss
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 train_param_path = "./model/unet/"
-# input_path = "../data/combined_shuffled/CMOS/"
-# target_path = "../data/combined_shuffled/ideal/"
-# spad_path = "../data/combined_shuffled/SPAD/"
+input_path = "../data/combined_shuffled/CMOS/"
+target_path = "../data/combined_shuffled/ideal/"
+spad_path = "../data/combined_shuffled/SPAD/"
 
-input_path = "../data/small_shuffled/CMOS/"
-target_path = "../data/small_shuffled/ideal/"
-spad_path = "../data/small_shuffled/SPAD/"
+# input_path = "../data/small_shuffled/CMOS/"
+# target_path = "../data/small_shuffled/ideal/"
+# spad_path = "../data/small_shuffled/SPAD/"
 
 # TODO: change path back
 down_sp_rate = 1  # down sample rate
@@ -37,13 +37,13 @@ init_lr = 0.001  # initial learning rate
 # treid
 # exp, multi-step
 
-# num_workers_train = 16
-# num_workers_val = 8
-# batch_size = 20
+num_workers_train = 16
+num_workers_val = 8
+batch_size = 20
 
-num_workers_train = 0
-num_workers_val = 0
-batch_size = 16
+# num_workers_train = 0
+# num_workers_val = 0
+# batch_size = 16
 
 epoch = 2000
 MAX_ITER = int(1e5)  # 1e10 in the provided file
@@ -581,16 +581,16 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.13.2"
+    version = "-v2.13.5"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
-    # param_to_load = train_param_path + "unet-v2.8.7_epoch_1599.pth"
+    param_to_load = train_param_path + "/unet-v2.13.5_epoch_999.pth"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=15, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=True, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=0, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()
