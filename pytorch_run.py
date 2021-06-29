@@ -121,6 +121,10 @@ def print_params():
     print("######## Other Parameters ########")
     print("down sampling rate = ", down_sp_rate)
     print("##################################")
+    if mini_model:
+        print("working with MINI model")
+    else:
+        print("working with FULL model")
     return
 
 
@@ -404,6 +408,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     train_loader = load_hdr_data(input_path, spad_path, target_path, None, train_sampler, train_indices, num_workers_train)
     dev_loader = load_hdr_data(input_path, spad_path, target_path, None, dev_sampler, dev_indices, num_workers_val)
 
+
     print("Using cross-validation with a {:.0%}/{:.0%} train/dev split:".format(1 - validation_split, validation_split))
     print("dev set: entry {} to {} | train set: entry {} to {}"
           .format(dev_indices[0], dev_indices[-1], train_indices[0], train_indices[-1]))
@@ -581,7 +586,7 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.13.5"
+    version = "-v2.14.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
     param_to_load = train_param_path + "/unet-v2.13.5_epoch_999.pth"
@@ -589,8 +594,8 @@ def main():
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet()
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # train_dev(net, device, tb, load_weights=True, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=1, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=4, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()

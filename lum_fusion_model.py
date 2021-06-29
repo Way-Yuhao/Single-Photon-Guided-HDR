@@ -366,5 +366,5 @@ class IntensityGuidedHDRNet(nn.Module):
         x_att, mask = self.Att0(g=d0, x=x)
         out = self.ConvOut(d0, x_att)
 
-        # mask = torch.cat((mask, mask, mask), dim=1)
-        return out
+        mask = torch.cat((mask, mask, mask), dim=1)
+        return mask
