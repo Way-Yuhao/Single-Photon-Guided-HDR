@@ -210,19 +210,16 @@ class OneByOneConvBlock(nn.Module):
 
 class DeConvBlock(nn.Module):
 
-    def __init__(self, in_ch, out_ch, output_size, f=3):
+    def __init__(self, in_ch, out_ch):
         super(DeConvBlock, self).__init__()
 
-        # de_conv_temp = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=f, stride=2, padding=1)
-        # de_conv_layer = DeConvLayer(de_conv_temp, output_size=output_size)
-        de_conv_layer = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=4, stride=2, padding=1)
-        self.de = nn.Sequential(
-            nn.Conv2d(in_ch, in_ch, kernel_size=1, bias=True),
-            de_conv_layer,
-            nn.InstanceNorm2d(out_ch),
-            nn.ReLU(inplace=True))  # at discretion
+        # de_conv_layer = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=4, stride=2, padding=1)
+        # self.de = nn.Sequential(
+        #     nn.Conv2d(in_ch, in_ch, kernel_size=1, bias=True),
+        #     de_conv_layer,
+        #     nn.InstanceNorm2d(out_ch),
+        #     nn.ReLU(inplace=True))  # at discretion
 
-        # new
         self.resize = nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear'),
             nn.ReflectionPad2d(1),
@@ -297,13 +294,15 @@ def _stack_chs(b, g, r):
 
 
 class IntensityGuidedHDRNet(nn.Module):
-    def __init__(self):
+    def __init__(self, isMonochrome=False, outputMask=False):
         super(IntensityGuidedHDRNet, self).__init__()
+        """flags"""
+        self.isMonochrome = isMonochrome
+        self.outputMask = outputMask
 
         """Up Sampling and Luminance Fusion Network"""
         # layer depth #      0    1    2    3    4    5     6
         main_chs = np.array([3,  64, 128, 256, 512, 512, 1024])   # number of output channels for main encoder
-        # side_chs = np.array([-1,  3,   4,  16,  64, 128,   -1])   # number of output channels for side encoder
         side_chs = np.array([-1,  3,  64,  128, 256, 512, -1])  # number of output channels for side encoder
         h =       np.array([128, 64,  32,  16,   8,   4,    2])   # height of tensors
 
@@ -314,12 +313,12 @@ class IntensityGuidedHDRNet(nn.Module):
         self.Conv6 = ConvLayer(in_ch=main_chs[5], out_ch=main_chs[6])
 
         # decoder
-        self.DeConv6 = DeConvBlock(in_ch=main_chs[6], out_ch=main_chs[5], output_size=(h[5], h[5] * 2))
-        self.DeConv5 = DeConvBlock(in_ch=2 * main_chs[5] + side_chs[5], out_ch=main_chs[4], output_size=(h[4], h[4] * 2))
-        self.DeConv4 = DeConvBlock(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3], output_size=(h[3], h[3] * 2))
-        self.DeConv3 = DeConvBlock(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2], output_size=(h[2], h[2] * 2))
-        self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1], output_size=(h[1], h[1] * 2))
-        self.DeConv1 = DeConvBlock(in_ch=2 * main_chs[1], out_ch=main_chs[0], output_size=(h[0], h[0] * 2))
+        self.DeConv6 = DeConvBlock(in_ch=main_chs[6], out_ch=main_chs[5])
+        self.DeConv5 = DeConvBlock(in_ch=2 * main_chs[5] + side_chs[5], out_ch=main_chs[4])
+        self.DeConv4 = DeConvBlock(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3])
+        self.DeConv3 = DeConvBlock(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2])
+        self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1])
+        self.DeConv1 = DeConvBlock(in_ch=2 * main_chs[1], out_ch=main_chs[0])
 
         # attention gates
         self.Att1 = AttentionBlock(F_g=main_chs[1], F_l=main_chs[1], F_int=main_chs[0])
@@ -331,8 +330,8 @@ class IntensityGuidedHDRNet(nn.Module):
         self.SpadConv4 = nn.Conv2d(side_chs[3], side_chs[4], kernel_size=2, stride=2, padding=0, bias=True)
         self.SpadConv5 = nn.Conv2d(side_chs[4], side_chs[5], kernel_size=2, stride=2, padding=0, bias=True)
 
-        # final encoders
-        self.ConvOut = OneByOneConvBlock(in_ch=2 * main_chs[0], out_ch=main_chs[0])
+        # final encoder: output # of channel is 3 for RGB, 1 for monochrome
+        self.ConvOut = OneByOneConvBlock(in_ch=2 * main_chs[0], out_ch=main_chs[0] - isMonochrome * 2)
 
     def forward(self, x, y):
         # split color channels
@@ -366,5 +365,9 @@ class IntensityGuidedHDRNet(nn.Module):
         x_att, mask = self.Att0(g=d0, x=x)
         out = self.ConvOut(d0, x_att)
 
-        mask = torch.cat((mask, mask, mask), dim=1)
-        return mask
+        # if mode outputMask is set to true, then visualize mask through output
+        if self.outputMask is True:
+            mask = torch.cat((mask, mask, mask), dim=1)
+            out = mask
+
+        return out

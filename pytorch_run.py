@@ -17,7 +17,7 @@ from external.vgg import VGGLoss
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
-monochrome = True  # True if in monochromatic mode
+monochrome = False  # True if in monochromatic mode
 mini_model = True
 train_param_path = "./model/unet/"
 
@@ -163,6 +163,11 @@ def compute_l1_perc(output, target, vgg_net):
     :param target:
     :return:
     """
+
+    if monochrome:
+        output = torch.cat((output, output, output), dim=1)
+        # target = torch.cat((target, target, target), dim=1)
+
     l1_criterion = nn.L1Loss()
     output, target = tone_map(output, target)
     l1_loss = l1_criterion(output, target)
@@ -212,6 +217,8 @@ def save_hdr(img, path):
     :return: None
     """
     img = img.detach().clone()
+    if img.shape[1] == 1:
+        img = torch.stack((img, img, img), dim=1).squeeze(dim=2)
     output_img = img.cpu().squeeze().permute(1, 2, 0).numpy()
     radiance_writer(output_img, path)
     print("32 bit .hdr file save to ", path)
@@ -561,9 +568,6 @@ def show_predictions(net, target_idx, pre_trained_params_path):
         with torch.no_grad():
             input_, spad, target = select_example(test_iter, target_idx)
             output = net(input_, spad)
-
-            print(output.shape)
-
             loss = compute_l1_perc(output, target, vgg_net)
 
         print("loss at test time = ", loss.item())
@@ -586,16 +590,14 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.14.0"
+    version = "-v2.15.0"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
-    # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format("-v2.1.3", 500)
-    param_to_load = train_param_path + "/unet-v2.13.5_epoch_999.pth"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
-    net = IntensityGuidedHDRNet()
+    net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=False)
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=4, pre_trained_params_path=param_to_load)
+    # show_predictions(net, target_idx=3, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()
