@@ -451,17 +451,18 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
 
         scheduler.step()
 
-        if ep % 20 == 19:  # for every 10 epochs
-            sample_train_output = output[0, :, :, :]
-            # save_16bit_png(sample_train_output, path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
-            disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
-            # save_16bit_png(dev_output_sample, path="./out_files/validation_epoch_{}_{}.png".format(ep + 1, version))
-            # save_weights(net, ep)
-        if ep % 100 == 99:  # for every 100 epochs
-            save_weights(net, ep)
+        if mini_model:
+            if ep % 100 == 99:  # for every 100 epochs
+                sample_train_output = output[0, :, :, :]
+                disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
+                save_weights(net, ep)
+        else:
+            if ep % 20 == 19:
+                sample_train_output = output[0, :, :, :]
+                disp_plt(sample_train_output, title="sample training output in epoch {}".format(ep + 1), tone_map=True)
+                save_weights(net, ep)
 
     print("finished training")
-    save_16bit_png(target[0, :, :, :], path="./out_files/sample_ground_truth.png")
     save_weights(net, ep="{}_FINAL".format(epoch))
     return
 
@@ -590,14 +591,14 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.15.0"
+    version = "-v2.15.3"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
-    net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=False)
+    net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=True)
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, target_idx=3, pre_trained_params_path=param_to_load)
+    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=13, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()

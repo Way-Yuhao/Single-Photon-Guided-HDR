@@ -309,7 +309,7 @@ class IntensityGuidedHDRNet(nn.Module):
         # encoder (VGG16 + extra Conv layer)
         self.vgg16 = models.vgg16(pretrained=True)
         encoded_features = list(self.vgg16.features)
-        self.encoded_features = nn.ModuleList(encoded_features).eval()
+        self.encoded_features = nn.ModuleList(encoded_features) # .eval()
         self.Conv6 = ConvLayer(in_ch=main_chs[5], out_ch=main_chs[6])
 
         # decoder
