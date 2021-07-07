@@ -291,10 +291,12 @@ class ImageFolder(VisionDataset):
         if self.isMonochrome:
             input_sample, spad_sample, target_sample = cvt_monochrome(input_sample, spad_sample, target_sample)
 
-        return input_sample, spad_sample, target_sample
-
         # disp_sample(input_sample, spad_sample, None, target_sample)
         # raise Exception()
+
+        return input_sample, spad_sample, target_sample
+
+
         # spad_sample = spad_sample[1, :, :].unsqueeze(dim=0)  # only keep one channel
 
     def check_files(self):

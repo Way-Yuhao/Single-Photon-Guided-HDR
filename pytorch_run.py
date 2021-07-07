@@ -17,9 +17,12 @@ from external.vgg import VGGLoss
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
-monochrome = False  # True if in monochromatic mode
-mini_model = True
+monochrome = True  # True if in monochromatic mode
+mini_model = False
+redirect_plt = not mini_model
+visualize_mask = True
 train_param_path = "./model/unet/"
+plt_path = "./plt/"
 
 if mini_model:
     input_path = "../data/small_shuffled/CMOS/"
@@ -44,7 +47,7 @@ if mini_model:
 else:
     num_workers_train = 16
     num_workers_val = 8
-    batch_size = 20
+    batch_size = 18
 
 """Simulation Parameters"""
 CMOS_fwc = 33400  # full well capacity of the CMOS sensor
@@ -79,15 +82,6 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     :param sampler:
     :return: dataloader object
     """
-
-    # # data augmentation
-    # data_transforms = transforms.Compose([
-    #     # transforms.ToTensor(),
-    #     transforms.ToPILImage(mode="RGB"),
-    #     # transforms.CenterCrop(96),
-    #     transforms.ToTensor()
-    # ])
-
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform,
                                      target_transform=transform, indices=indices, load_all=load_all,
@@ -113,6 +107,12 @@ def print_params():
     prints a list of parameters to stdout
     :return: None
     """
+    print("######## Basics ##################")
+    print("version: {}".format(version))
+    print("redirecting plt outputs = {}".format(redirect_plt))
+    print("Monochrome = {}".format(monochrome))
+    if visualize_mask:
+        print("WARNING: visualizing mask")
     print("######## Hyper Parameters ########")
     print("batch size = ", batch_size)
     print("epoch = ", epoch)
@@ -125,6 +125,21 @@ def print_params():
         print("working with MINI model")
     else:
         print("working with FULL model")
+    return
+
+
+def init_dir():
+    """
+    initiate a new directory for plt outputs of the current version
+    :return:
+    """
+    global plt_path
+    plt_dir = os.path.join(plt_path, version)
+    if os.path.exists(plt_dir):
+        # raise FileExistsError("ERROR: directory {} already exists".format(plt_dir))
+        pass
+    else:
+        os.mkdir(plt_dir)
     return
 
 
@@ -163,10 +178,10 @@ def compute_l1_perc(output, target, vgg_net):
     :param target:
     :return:
     """
-
-    if monochrome:
+    if visualize_mask:
+        return None
+    elif monochrome:
         output = torch.cat((output, output, output), dim=1)
-        # target = torch.cat((target, target, target), dim=1)
 
     l1_criterion = nn.L1Loss()
     output, target = tone_map(output, target)
@@ -244,8 +259,6 @@ def disp_plt(img, title="", idx=None, tone_map=False):
         img = img.cpu().squeeze()
         img = torch.stack((img, img, img), dim=0).permute(1, 2, 0)
     img = np.float32(img)
-    # img = img / img.max()  # normalize to [0, 1]
-    # img = median_filter(img)
     if tone_map:
         tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
         img = tonemapDrago.process(img)
@@ -255,7 +268,12 @@ def disp_plt(img, title="", idx=None, tone_map=False):
         title = "{} (index {})".format(title, idx)
     full_title = "{} / {} / tone mapping={}".format(version, title, tone_map)
     plt.title(full_title)
-    plt.show()
+
+    if redirect_plt:
+        fname = "{}_{}.png".format(version, title)
+        plt.savefig(os.path.join(plt_path, version, fname))
+    else:
+        plt.show()
     return
 
 
@@ -393,6 +411,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     :return: None
     """
     print_params()  # print hyper parameters
+    init_dir()
     net.to(device)
     net.train()
 
@@ -552,7 +571,8 @@ def show_predictions(net, target_idx, pre_trained_params_path):
     :param pre_trained_params_path: path to load pre-trained weights
     :return: None
     """
-    global batch_size
+    global batch_size, redirect_plt
+    redirect_plt = False
     batch_size = 1
     load_network_weights(net, pre_trained_params_path)
     test_loader = load_hdr_data(input_path, spad_path, target_path, load_all=False)
@@ -571,11 +591,15 @@ def show_predictions(net, target_idx, pre_trained_params_path):
             output = net(input_, spad)
             loss = compute_l1_perc(output, target, vgg_net)
 
-        print("loss at test time = ", loss.item())
+        # handling the case where no loss value is returned (e.g. when visualizing mask)
+        loss_value = 0.0
+        if loss is not None:
+            loss_value = loss.item()
+        print("loss at test time = ", loss_value)
 
         disp_plt(img=input_, title="input", idx=target_idx, tone_map=True)
         disp_plt(img=spad, title="spad", idx=target_idx, tone_map=True)
-        disp_plt(img=output, title="output / loss = {:.3f}".format(loss.item()), idx=target_idx, tone_map=True)
+        disp_plt(img=output, title="output / loss = {:.3f}".format(loss_value), idx=target_idx, tone_map=True)
         disp_plt(img=target, title="target", idx=target_idx, tone_map=True)
 
         save_hdr(output, "./out_files/test_output{}_{}.hdr".format(version, target_idx))
@@ -591,14 +615,16 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.15.3"
+    version = "-v2.15.14"
     param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
-    net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=True)
+    net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=13, pre_trained_params_path=param_to_load)
+    show_predictions(net, target_idx=2, pre_trained_params_path=param_to_load)
+    show_pred
+
 
     tb.close()
     flush_plt()

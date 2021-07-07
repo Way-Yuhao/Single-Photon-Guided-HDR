@@ -207,7 +207,6 @@ class OneByOneConvBlock(nn.Module):
 
 
 
-
 class DeConvBlock(nn.Module):
 
     def __init__(self, in_ch, out_ch):
