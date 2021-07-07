@@ -36,6 +36,7 @@ class IdealSimulator(object):
         img = self.img / T
         self.save_hdr_img(img, id)
 
+
     def save_hdr_img(self, img, id):
         """
         :param img:

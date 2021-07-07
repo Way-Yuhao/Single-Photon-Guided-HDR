@@ -1,11 +1,14 @@
 import cv2
 import numpy as np
+import os.path as p
 import os
 from tqdm import tqdm
 from radiance_writer import *
 
 out_path = ""  # define in main()
-
+CMOS_fwc = 33400  # full well capacity of the CMOS sensor
+CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
+CMOS_sat = CMOS_fwc / CMOS_T  # saturation value of the CMOS simulated images
 
 def add(img1, img2):
     out = img1 + img2
@@ -41,7 +44,7 @@ def last_sample_before_sat_scaling(img1, img2, diff):
     for h in range(out.shape[0]):
         for w in range(out.shape[1]):
             for c in range(out.shape[2]):
-                if out[h][w][c] >= 2 ** 16 - 1:
+                if out[h][w][c] >= CMOS_sat:  # 2**16 - 1
                     out[h][w] = img2[h][w]
                     continue
     return out
@@ -78,27 +81,51 @@ def run():
 
 def run_all():
     global out_path
-    diff = 100
-    folder1 = "../simulated_outputs/437_256x128_bl/CMOS/"
-    folder2 = "../simulated_outputs/437_256x128_bl/CMOS_x0.01/"
-    out_path = "./out/"
+    # diff = 10000
+    diff = 1
+    # path1 is long exposure, path2 is short exposure
+    path1 = "../simulated_outputs/combined_shuffled_copy/CMOS/"
+    path2 = "../simulated_outputs/combined_shuffled_copy/CMOS_short/"
+    out_path = "./out_dev/"
     os.mkdir(out_path)
 
-    path, dirs, files = next(os.walk(folder1))
-    file_count = len([x for x in files if "png" in x])
+    path, dirs, files = next(os.walk(path1))
+    file_count = len([x for x in files if "hdr" in x])
     print(file_count)
 
     print("processing {} hdr files".format(file_count))
     for i in tqdm(range(file_count)):
-        img1 = cv2.imread(folder1 + "{}_cmos.png".format(i), -1).astype('float64')
-        img2 = cv2.imread(folder2 + "{}_cmos.png".format(i), -1).astype('float64')
+        img1 = cv2.imread(path1 + "{}_cmos.hdr".format(i), -1).astype('float64')
+        img2 = cv2.imread(path2 + "{}_cmos.hdr".format(i), -1).astype('float64')
         merged = last_sample_before_sat_scaling(img1, img2, diff)
         save(merged, i, "hdr", gamma=4)
+
+        # only run devs
+        if i >= 113:
+            break
+
+
+def cvt_monochrome():
+    # fname = p.join(path, "img_1.exr")
+    # img = cv2.imread(fname, -1)
+
+    rgb_path = "./out_dev/"
+    mono_path = "./out_dev_mono/"
+
+    for i in tqdm(range(112)):
+        fname = p.join(rgb_path, "{}_merged.hdr".format(i))
+        img = cv2.imread(fname, -1)
+        monochrome = np.dstack((img[:, :, 1], img[:, :, 1], img[:, :, 1]))
+        out_fname = p.join(mono_path, "{}_merged_monochrome.hdr".format(i))
+        radiance_writer(monochrome, out_fname)
+
+    return
 
 
 def main():
     # run_all()
-    run()
+    # run()
+    cvt_monochrome()
 
 
 if __name__ == "__main__":

@@ -2,14 +2,18 @@ import os
 from os import path as p
 import cv2
 import numpy as np
+import re
+from shutil import copyfile
 
-path_1 = "../simulated_outputs/collection/HDRI"
-path_2 = "../simulated_outputs/collection/indoor"
-path_3 = "../simulated_outputs/collection/MATLAB_3x3"
-path_combined = "../simulated_outputs/combined"
-path_shuf = "../simulated_outputs/combined_shuffled"
+path_1 = "../simulated_outputs/collection_short_exp/HDRI"
+path_2 = "../simulated_outputs/collection_short_exp/indoor"
+path_3 = "../simulated_outputs/collection_short_exp/MATLAB_3x3"
+path_combined = "../simulated_outputs/combined_short_exp"
+path_shuf = "../simulated_outputs/combined_shuffled_short_exp"
 
 composition = ("CMOS", "SPAD", "ideal", "plt")
+
+count = 561
 
 
 def check_files(f):
@@ -23,22 +27,22 @@ def combine(global_counter, folder):
     counter = 0
     while True:
         cmos = p.join(folder, composition[0], "{}_cmos.hdr".format(counter))
-        spad = p.join(folder, composition[1], "{}_spad.hdr".format(counter))
-        ideal = p.join(folder, composition[2], "{}_gt.hdr".format(counter))
-        plt = p.join(folder, composition[3], "plt_{}.png".format(counter))
+        # spad = p.join(folder, composition[1], "{}_spad.hdr".format(counter))
+        # ideal = p.join(folder, composition[2], "{}_gt.hdr".format(counter))
+        # plt = p.join(folder, composition[3], "plt_{}.png".format(counter))
         b1 = check_files(cmos)
-        b2 = check_files(spad)
-        b3 = check_files(ideal)
-        b4 = check_files(plt)
-        if not (b1 and b2 and b3 and b4):
+        # b2 = check_files(spad)
+        # b3 = check_files(ideal)
+        # b4 = check_files(plt)
+        if not (b1):  #  and b2 and b3 and b4):
             print("counter stopped at {} in folder {}".format(counter, folder))
             print("global counter = ", global_counter)
             break
         else:
             os.rename(cmos, p.join(path_combined, "CMOS", "{}_cmos.hdr".format(global_counter)))
-            os.rename(spad, p.join(path_combined, "SPAD", "{}_spad.hdr".format(global_counter)))
-            os.rename(ideal, p.join(path_combined, "ideal", "{}_gt.hdr".format(global_counter)))
-            os.rename(plt, p.join(path_combined, "plt", "plt_{}.png".format(global_counter)))
+            # os.rename(spad, p.join(path_combined, "SPAD", "{}_spad.hdr".format(global_counter)))
+            # os.rename(ideal, p.join(path_combined, "ideal", "{}_gt.hdr".format(global_counter)))
+            # os.rename(plt, p.join(path_combined, "plt", "plt_{}.png".format(global_counter)))
             print("{} -> {}".format(counter, global_counter))
 
         counter += 1
@@ -48,7 +52,6 @@ def combine(global_counter, folder):
 
 
 def shuffle():
-    count = 561
     perm = np.random.permutation(count)
     seq_idx = 0
     for i in perm:
@@ -70,8 +73,24 @@ def shuffle():
         seq_idx += 1
 
 
+def shuffle_fixed():
+    f = open("../simulated_outputs/shuffled_test.txt", "r")
+    for i in range(count):
+        line = f.readline()
+        a, b = re.findall(r'\d+', line)
+        cmos = p.join(path_combined, composition[0], "{}_cmos.hdr".format(a))
+        cmos_shuff = p.join(path_shuf, composition[0], "{}_cmos.hdr".format(b))
+        copyfile(cmos, cmos_shuff)
+        print("{} -> {}".format(a, b))
+
+
 def test():
-    print(np.random.permutation(10))
+    f = open("../simulated_outputs/shuffled_test.txt", "r")
+    for i in range(count):
+        line = f.readline()
+        a, b = re.findall(r'\d+', line)
+        print(b)
+
 
 
 def init():
@@ -98,8 +117,11 @@ def main():
     # counter = 0
     # counter = combine(counter, path_1)
     # counter = combine(counter, path_2)
-    # counter = combine(counter, path_3)
-    shuffle()
+    # shuffle()
+
+    shuffle_fixed()
+
+    # test()
 
 
 if __name__ == "__main__":

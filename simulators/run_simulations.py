@@ -81,9 +81,13 @@ def scale_flux(flux):
     scales the flux matrix by a constant
     :return: scaled ground truth matrix
     """
-    flux *= 1e6 * 5  # HDRI
+    # flux *= 1e6 * 5  # HDRI
     # flux *= 1e7 * 10 # Laval Indoor
-    # flux *= 5e4  # HDR_MATLAB_3x3
+
+
+    flux = flux / flux.max()
+    flux *= 50
+    flux *= 5e5  # HDR_MATLAB_3x3
     return flux
 
 
@@ -146,17 +150,37 @@ def init():
     os.mkdir(out_path + "SPAD")
     os.mkdir(out_path + "ideal")
     os.mkdir(out_path + "plt")
-
     return
+
+
+def run_stats(fpath):
+    th, dirs, files = next(os.walk(fpath))
+    file_count = len([x for x in files if "hdr" in x or "exr" in x])
+    print("processing {} hdr files".format(file_count))
+    i = 0
+    for filename in os.listdir(fpath):
+        if not filename.endswith(".hdr") and not filename.endswith(".exr"):
+            continue
+        flux = read_flux(os.path.join(fpath, filename))
+
+        print("{} | mean = {} | max = {} | min = {}".format(i, flux.mean(), flux.max(), flux.min()))
+
+        # flux = scale_flux(flux)
+        # init_simulators()
+        # run_simulations(flux, str(i))
+        # save_hist(flux, i)
+        i += 1
 
 
 def main():
     # TODO: remember to correct scaling
     init()
     # run(collection_path + "100samplesDataset")
-    run(collection_path + "HDRI_4k")
-    # run(collection_path + "HDR_MATLAB_3x3")
+    # run(collection_path + "HDRI_4k")
+    run(collection_path + "HDR_MATLAB_3x3")
     # run(artificial_path)
+
+    # run_stats(collection_path + "HDR_MATLAB_3x3")
 
 
 if __name__ == "__main__":

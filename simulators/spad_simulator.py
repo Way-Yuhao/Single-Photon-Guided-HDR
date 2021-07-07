@@ -80,6 +80,7 @@ class SPADSimulator(object):
         self.save_hdr_img(img, id)
         # self.save_img(img, gain, id)
 
+
     def linearize(self, img, T):
         # for N in np.nditer(img, op_flags=['readwrite']):
         #     N[...] = N / (T - N * self.tau)
