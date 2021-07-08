@@ -13,17 +13,19 @@ import os.path as p
 # spad = cv2.imread("../simulated_outputs/combined_shuffled/SPAD/300_spad.hdr", -1)
 # print(cmos)
 
-out_path = "../test/CMOS/"
+out_path = "../test/CMOS_8bit_PNG/"
 
-fname = p.join(out_path, "0_cmos.hdr")
+fname = p.join(out_path, "0_cmos.png")
 
 img = cv2.imread(fname, -1)
 print(img.shape)
 h, w, _ = img.shape
-if h % 2 != 0:
-    img = img[:-1, :, :]
-if w % 2 != 0:
-    img = img[:, :-1, :]
+if h % 4 != 0:
+    diff = h % 4
+    img = img[:-diff, :, :]
+if w % 4 != 0:
+    diff = w % 4
+    img = img[:, :-diff, :]
 
 print(img.shape)
 

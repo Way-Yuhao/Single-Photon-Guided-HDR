@@ -54,7 +54,10 @@ def create_dir(out_path):
     os.mkdir(out_path)
 
 
-def save(img, idx, mode="png", gamma=2.2):
+def save(img, idx, mode="png", gamma=2.2, monochrome=False):
+    if monochrome:
+        img = np.dstack((img[:, :, 1], img[:, :, 1], img[:, :, 1]))
+
     if mode == "png":
         img = apply_gamma(img, gamma)
         cv2.imwrite(out_path + "{}_merged.png".format(idx), img.astype('uint16'))
@@ -84,9 +87,9 @@ def run_all():
     # diff = 10000
     diff = 1
     # path1 is long exposure, path2 is short exposure
-    path1 = "../simulated_outputs/combined_shuffled_copy/CMOS/"
-    path2 = "../simulated_outputs/combined_shuffled_copy/CMOS_short/"
-    out_path = "./out_dev/"
+    path1 = "../test/CMOS/"
+    path2 = "../test/CMOS_short/"
+    out_path = "./out_test/"
     os.mkdir(out_path)
 
     path, dirs, files = next(os.walk(path1))
@@ -98,7 +101,7 @@ def run_all():
         img1 = cv2.imread(path1 + "{}_cmos.hdr".format(i), -1).astype('float64')
         img2 = cv2.imread(path2 + "{}_cmos.hdr".format(i), -1).astype('float64')
         merged = last_sample_before_sat_scaling(img1, img2, diff)
-        save(merged, i, "hdr", gamma=4)
+        save(merged, i, "hdr", gamma=4, monochrome=True)
 
         # only run devs
         if i >= 113:
@@ -123,9 +126,9 @@ def cvt_monochrome():
 
 
 def main():
-    # run_all()
+    run_all()
     # run()
-    cvt_monochrome()
+    # cvt_monochrome()
 
 
 if __name__ == "__main__":

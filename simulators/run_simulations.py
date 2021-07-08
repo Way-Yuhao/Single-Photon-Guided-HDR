@@ -4,11 +4,14 @@ This module runs spad and cmos simulators
 
 import cv2
 import os
+import numpy as np
 from matplotlib import pyplot as plt
 from simulators.spad_simulator import SPADSimulator
 from simulators.cmos_simulator import CMOSSimulator
 from simulators.ideal_simulator import IdealSimulator
 from tqdm import tqdm
+import os.path as p
+from radiance_writer import radiance_writer
 
 """global parameters"""
 collection_path = "../input/collection/"
@@ -19,10 +22,9 @@ artificial_path = "../simulated_outputs/artificial/input"
 
 """SPAD parameters"""
 SPAD_Sim = None
-SPAD_on = True             # toggle on to enable SPAD simulator
+SPAD_on = False             # toggle on to enable SPAD simulator
 SPAD_mono = False          # if the sensor is monochromatic
 SPAD_T = .01               # exposure time in seconds
-# SPAD_T = .01               # exposure time in seconds
 # SPAD_gain = 10             # uniform gain applied to the analog signal
 SPAD_tau = 150e-9          # dead time in seconds
 SPAD_down_sample_rate = 4  # spatial down sampling rate of the sensor
@@ -38,8 +40,8 @@ CMOS_Sim = None
 CMOS_on = True              # toggle on to enable CMOS simulator
 CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 33400            # full well capacity with a 15 bit sensor
-CMOS_T = .01                # exposure time in seconds
-# CMOS_T = .000001                # exposure time in seconds
+# CMOS_T = .01                # exposure time in seconds
+CMOS_T = .000001                # exposure time in seconds
 # CMOS_gain = 1             # uniform gain applied to the analog signal
 CMOS_down_sample_rate = 1   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
@@ -50,10 +52,11 @@ CMOS_qe = {                 # quantum efficiency index for each color channel
 
 """ideal sensor parameters"""
 ideal_Sim = None
-ideal_on = True
+ideal_on = False
 idea_T = CMOS_T
 # ideal_gain = CMOS_gain
 ideal_down_sample_rate = CMOS_down_sample_rate
+
 
 
 def resave_gt(fname, id):
@@ -74,6 +77,26 @@ def read_flux(fname):
     flux = cv2.imread(fname, -1)
     assert flux is not None
     return flux
+
+
+# def trim_dims(img):
+#     factor = 128
+#     h, w, _ = img.shape
+#     if h % factor != 0:
+#         diff = h % factor
+#         img = img[:-diff, :, :]
+#     if w % factor != 0:
+#         diff = w % factor
+#         img = img[:, :-diff, :]
+#     return img
+
+
+def trim_dims(img):
+    h, w, _ = img.shape
+    if h < 1024 or w < 2048:
+        raise ValueError()
+    img = img[0:1024, 0:2048, :]
+    return img
 
 
 def scale_flux(flux):
@@ -134,6 +157,11 @@ def run(fpath):
             continue
         flux = read_flux(os.path.join(fpath, filename))
         flux = scale_flux(flux)
+        try:
+            flux = trim_dims(flux)
+        except ValueError:
+            print("image {} too small".format(i))
+            continue
         init_simulators()
         run_simulations(flux, str(i))
         save_hist(flux, i)
@@ -172,15 +200,39 @@ def run_stats(fpath):
         i += 1
 
 
+def cvt_monochrome():
+
+    rgb_path = "../test/sims/"
+    mono_path = "../test/test_baselines/"
+    sensor = "gt"
+
+    path, dirs, files = next(os.walk(p.join(rgb_path, sensor)))
+    file_count = len([x for x in files if "hdr" in x])
+    print("converting {} {} files to monochrome".format(file_count, sensor))
+
+    if p.exists(p.join(mono_path, sensor)):
+        raise FileExistsError("target directory {} already exists".format(mono_path))
+    else:
+        os.mkdir(p.join(mono_path, sensor))
+
+    for i in tqdm(range(file_count)):
+        fname = p.join(rgb_path, sensor, "{}_{}.hdr".format(i, sensor))
+        img = cv2.imread(fname, -1)
+        monochrome = np.dstack((img[:, :, 1], img[:, :, 1], img[:, :, 1]))
+        out_fname = p.join(mono_path, sensor, "{}_{}_monochrome.hdr".format(i, sensor))
+        radiance_writer(monochrome, out_fname)
+
+    return
+
 def main():
     # TODO: remember to correct scaling
-    init()
+    # init()
     # run(collection_path + "100samplesDataset")
     # run(collection_path + "HDRI_4k")
-    run(collection_path + "HDR_MATLAB_3x3")
+    # run(collection_path + "HDR_MATLAB_3x3")
     # run(artificial_path)
 
-    # run_stats(collection_path + "HDR_MATLAB_3x3")
+    cvt_monochrome()
 
 
 if __name__ == "__main__":
