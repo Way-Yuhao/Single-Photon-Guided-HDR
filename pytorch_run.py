@@ -20,19 +20,29 @@ version = None  # version of the model, defined in main()
 monochrome = True  # True if in monochromatic mode
 mini_model = False
 redirect_plt = not mini_model
-visualize_mask = True
+visualize_mask = False
 train_param_path = "./model/unet/"
 plt_path = "./plt/"
 
-if mini_model:
-    input_path = "../data/small_shuffled/CMOS/"
-    target_path = "../data/small_shuffled/ideal/"
-    spad_path = "../data/small_shuffled/SPAD/"
+"""train & dev set"""
+# if mini_model:
+#     input_path = "../data/small_shuffled/CMOS/"
+#     target_path = "../data/small_shuffled/ideal/"
+#     spad_path = "../data/small_shuffled/SPAD/"
+# else:
+#     input_path = "../data/combined_shuffled/CMOS/"
+#     target_path = "../data/combined_shuffled/ideal/"
+#     spad_path = "../data/combined_shuffled/SPAD/"
 
-else:
-    input_path = "../data/combined_shuffled/CMOS/"
-    target_path = "../data/combined_shuffled/ideal/"
-    spad_path = "../data/combined_shuffled/SPAD/"
+"""test set"""
+# input_path = "../data/test/CMOS/"
+# target_path = "../data/test/ideal/"
+# spad_path = "../data/test/SPAD/"
+
+"""test set - real data"""
+input_path = "../data/real_data/fire2/CMOS/"
+target_path = "../data/real_data/fire2/ideal/"
+spad_path = "../data/real_data/fire2/SPAD/"
 
 down_sp_rate = 1  # down sample rate
 
@@ -70,7 +80,7 @@ def set_device():
 
 
 def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler=None, indices=None,
-                  _num_workers=0, load_all=True):
+                  _num_workers=0, load_all=True, augment=True):
     """
     custom dataloader that loads .hdr and .png data.
     :param _num_workers:
@@ -85,7 +95,7 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform,
                                      target_transform=transform, indices=indices, load_all=load_all,
-                                     monochrome=monochrome),
+                                     monochrome=monochrome, augment=augment),
         batch_size=batch_size, num_workers=_num_workers, shuffle=False, sampler=sampler)
     return data_loader
 
@@ -224,7 +234,7 @@ def save_16bit_png(img, path):
     return
 
 
-def save_hdr(img, path):
+def save_hdr(img, path, suppress_print=False):
     """
     saves 32-bit .hdr image
     :param img: image tensor of shape (1, c, h, w)
@@ -236,7 +246,8 @@ def save_hdr(img, path):
         img = torch.stack((img, img, img), dim=1).squeeze(dim=2)
     output_img = img.cpu().squeeze().permute(1, 2, 0).numpy()
     radiance_writer(output_img, path)
-    print("32 bit .hdr file save to ", path)
+    if not suppress_print:
+        print("32 bit .hdr file save to ", path)
     return
 
 
@@ -431,9 +442,9 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     train_sampler = SubsetRandomSampler(train_indices)
     dev_sampler = SubsetRandomSampler(dev_indices)
 
-    train_loader = load_hdr_data(input_path, spad_path, target_path, None, train_sampler, train_indices, num_workers_train)
+    train_loader = load_hdr_data(input_path, spad_path, target_path, None, train_sampler, train_indices,
+                                 num_workers_train)
     dev_loader = load_hdr_data(input_path, spad_path, target_path, None, dev_sampler, dev_indices, num_workers_val)
-
 
     print("Using cross-validation with a {:.0%}/{:.0%} train/dev split:".format(1 - validation_split, validation_split))
     print("dev set: entry {} to {} | train set: entry {} to {}"
@@ -537,7 +548,7 @@ def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
     return
 
 
-def show_pred_all(net, loader_iter, size):
+def show_pred_all(net, device, loader_iter, size):
     """
     displaying network output for all inputs in the dataset
     :param net: pytorch object
@@ -552,18 +563,20 @@ def show_pred_all(net, loader_iter, size):
     else:
         os.mkdir("./out_files/pred_all/{}/".format(version))
         print("storing outputs in new directory ./out_files/pred_all/{}/".format(version))
-
+    loss_values = np.zeros(size)
     for i in tqdm(range(size)):
         with torch.no_grad():
             input_, spad, target = loader_iter.next()
-            # input_, spad, target = input_.to(device), spad.to(device), target.to(device)
+            input_, spad, target = input_.to(device), spad.to(device), target.to(device)
             output = net(input_, spad)
-            # loss = compute_l1_loss(output, target)
+            loss = compute_l1_loss(output, target)
+            loss_values[i] = loss.item()
             save_hdr(output, "./out_files/pred_all/{}/output{}_{}.hdr".format(version, version, i))
+    print("average loss for entire set = {}".format(loss_values.mean()))
     return
 
 
-def show_predictions(net, target_idx, pre_trained_params_path):
+def show_predictions(net, device, target_idx, pre_trained_params_path):
     """
     displays and saves a select sample output
     :param target_idx:
@@ -575,19 +588,21 @@ def show_predictions(net, target_idx, pre_trained_params_path):
     redirect_plt = False
     batch_size = 1
     load_network_weights(net, pre_trained_params_path)
-    test_loader = load_hdr_data(input_path, spad_path, target_path, load_all=False)
+    test_loader = load_hdr_data(input_path, spad_path, target_path, load_all=False, augment=False)
     test_iter = iter(test_loader)
 
+    net.to(device)
     vgg_net = VGGPerceptualLoss()
-    # vgg_net.to(device)
+    vgg_net.to(device)
 
     if target_idx is -1:  # batch
-        show_pred_all(net, test_iter, len(test_loader))
+        show_pred_all(net, device, test_iter, len(test_loader))
     else:  # single
         print("testing on {} images, index = {}".format(batch_size, target_idx))
         # net.eval()
         with torch.no_grad():
             input_, spad, target = select_example(test_iter, target_idx)
+            input_, spad, target = input_.to(device), spad.to(device), target.to(device)
             output = net(input_, spad)
             loss = compute_l1_perc(output, target, vgg_net)
 
@@ -608,6 +623,42 @@ def show_predictions(net, target_idx, pre_trained_params_path):
     return
 
 
+def show_prediction_real_data(net, device, pre_trained_params_path):
+    global redirect_plt, batch_size
+
+    print("Showing prediction on real data.\nCMOS saturation limit set to {}".format(CMOS_sat))
+    redirect_plt = False
+    batch_size = 1
+
+    load_network_weights(net, pre_trained_params_path)
+    test_loader = load_hdr_data(input_path, spad_path, target_path, load_all=False, augment=False)
+    test_iter = iter(test_loader)
+    size = len(test_loader)
+
+    net.to(device)
+    vgg_net = VGGPerceptualLoss()
+    vgg_net.to(device)
+
+    if os.path.exists("./out_files/pred_real_data/{}/".format(version)):
+        # raise Exception("Error: ./out_files/pred_real_data/{}/ already exists".format(version))
+        pass
+    else:
+        os.mkdir("./out_files/pred_real_data/{}/".format(version))
+        print("storing outputs in new directory ./out_files/pred_real_data/{}/".format(version))
+
+    for i in tqdm(range(size)):
+        with torch.no_grad():
+            input_, spad, target = test_iter.next()
+            input_, spad, target = input_.to(device), spad.to(device), target.to(device)
+            output = net(input_, spad)
+
+            disp_plt(img=input_, title="input", idx=i, tone_map=True)
+            disp_plt(img=spad, title="spad", idx=i, tone_map=True)
+            disp_plt(img=output, title="output", idx=i, tone_map=True)
+            save_hdr(output, "./out_files/pred_real_data/{}/output{}_{}.hdr".format(version, version, i))
+    return
+
+
 def main():
     """
     main function
@@ -615,16 +666,16 @@ def main():
     """
     global batch_size, version
     print("======================================================")
-    version = "-v2.15.14"
-    param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
+    version = "-v2.15.14-opt2"
+    # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
+    param_to_load = train_param_path + "unet-v2.15.14_epoch_1819_OPT.pth"
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
     # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    show_predictions(net, target_idx=2, pre_trained_params_path=param_to_load)
-    show_pred
-
+    # show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
+    show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
 
     tb.close()
     flush_plt()

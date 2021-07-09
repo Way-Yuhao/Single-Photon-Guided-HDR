@@ -176,15 +176,6 @@ def random_rotation(input_, spad, target, p=.25):
     return input_, spad, target
 
 
-def data_augmentation(input_, spad, target):
-
-    input_, spad, target = random_crop(input_, spad, target)
-    input_, spad, target = random_horizontal_flip(input_, spad, target)
-    input_, spad, target = random_rotation(input_, spad, target)
-
-    return input_, spad, target
-
-
 def cvt_monochrome(input_, spad, target):
     """
     converts BGR color image to monochrome. The output contains 3 copies of green channel
@@ -230,7 +221,7 @@ class ImageFolder(VisionDataset):
     """
 
     def __init__(self, input_dir, spad_dir, target_dir, input_transform=None, spad_transform=None,
-                 target_transform=None, indices=None, load_all=True, monochrome=False):
+                 target_transform=None, indices=None, load_all=True, monochrome=False, augment=True):
 
         self.load_all = load_all
         self.inputs = natsorted(os.listdir(input_dir))
@@ -240,6 +231,7 @@ class ImageFolder(VisionDataset):
         self.spad_dir = spad_dir
         self.target_dir = target_dir
         self.isMonochrome = monochrome
+        self.augment = augment
 
         if input_transform is not None:
             self.input_transform = input_transform
@@ -286,7 +278,7 @@ class ImageFolder(VisionDataset):
         input_sample = self.input_transform(input_sample)
         spad_sample = self.spad_transform(spad_sample)
         target_sample = self.target_transform(target_sample)
-        input_sample, spad_sample, target_sample = data_augmentation(input_sample, spad_sample, target_sample)
+        input_sample, spad_sample, target_sample = self.data_augmentation(input_sample, spad_sample, target_sample)
         input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
         if self.isMonochrome:
             input_sample, spad_sample, target_sample = cvt_monochrome(input_sample, spad_sample, target_sample)
@@ -296,8 +288,14 @@ class ImageFolder(VisionDataset):
 
         return input_sample, spad_sample, target_sample
 
-
-        # spad_sample = spad_sample[1, :, :].unsqueeze(dim=0)  # only keep one channel
+    def data_augmentation(self, input_, spad, target):
+        if self.augment is False:
+            pass
+        else:
+            input_, spad, target = random_crop(input_, spad, target)
+            input_, spad, target = random_horizontal_flip(input_, spad, target)
+            input_, spad, target = random_rotation(input_, spad, target)
+        return input_, spad, target
 
     def check_files(self):
         # check file extensions
