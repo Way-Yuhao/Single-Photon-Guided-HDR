@@ -4,10 +4,10 @@ import torchvision.transforms as transforms
 import cv2
 from tqdm import tqdm
 import os
-import os.path
+import os.path as p
 import numpy as np
 from natsort import natsorted
-from pytorch_run import disp_plt, disp_sample, CMOS_sat
+# from pytorch_run import disp_plt, disp_sample
 
 
 def cv_loader(path):
@@ -36,21 +36,6 @@ def down_sample(input_, target, down_sp_rate):
     input_ = input_[:, :, ::down_sp_rate, ::down_sp_rate]
     target = target[:, :, ::down_sp_rate, ::down_sp_rate]
     return input_, target
-
-
-def normalize(input_, spad, target):
-    """
-    normalizes input to [0, 255], spad and target to [0, >255]
-    :param input_: input tensor. Expects original input image files to be 16-bit PNG (uint16)
-    :param spad: side input tensor. Expects original input image files to be 32-bit .hdr (float32)
-    :param target: target tensor. Expects original label image files to be 32-bit .hdr (float32)
-    :return: normalized input and label
-    """
-    input_ = input_ / CMOS_sat * 255
-    spad = spad / CMOS_sat * 255
-    target = target / CMOS_sat * 255
-
-    return input_, spad, target
 
 
 def random_crop(input_, spad, target):
@@ -167,7 +152,8 @@ class ImageFolder(VisionDataset):
     """
 
     def __init__(self, input_dir, spad_dir, target_dir, input_transform=None, spad_transform=None,
-                 target_transform=None, indices=None, load_all=True, monochrome=False, augment=True):
+                 target_transform=None, indices=None, load_all=True, monochrome=False, augment=True,
+                 cmos_sat=None):
 
         self.load_all = load_all
         self.inputs = natsorted(os.listdir(input_dir))
@@ -178,6 +164,10 @@ class ImageFolder(VisionDataset):
         self.target_dir = target_dir
         self.isMonochrome = monochrome
         self.augment = augment
+        if cmos_sat is not None:
+            self.cmos_saturation = cmos_sat
+        else:
+            raise ValueError("ERROR: undefined CMOS saturation")
 
         if input_transform is not None:
             self.input_transform = input_transform
@@ -199,9 +189,9 @@ class ImageFolder(VisionDataset):
             entries = natsorted(os.listdir(input_dir))
             for i in tqdm(range(len(entries))):
                 if i in self.indices:
-                    input_sample = cv_loader(self.input_dir + self.inputs[i])
-                    spad_sample = cv_loader(self.spad_dir + self.spad_inputs[i])
-                    target_sample = cv_loader(self.target_dir + self.targets[i])
+                    input_sample = cv_loader(p.join(self.input_dir, self.inputs[i]))
+                    spad_sample = cv_loader(p.join(self.spad_dir, self.spad_inputs[i]))
+                    target_sample = cv_loader(p.join(self.target_dir, self.targets[i]))
                     self.dataset.append([input_sample, spad_sample, target_sample])
                 else:
                     self.dataset.append(None)
@@ -213,9 +203,9 @@ class ImageFolder(VisionDataset):
 
     def __getitem__(self, item):
         if not self.load_all:
-            input_sample = cv_loader(self.input_dir + self.inputs[item])
-            spad_sample = cv_loader(self.spad_dir + self.spad_inputs[item])
-            target_sample = cv_loader(self.target_dir + self.targets[item])
+            input_sample = cv_loader(p.join(self.input_dir, self.inputs[item]))
+            spad_sample = cv_loader(p.join(self.spad_dir, self.spad_inputs[item]))
+            target_sample = cv_loader(p.join(self.target_dir, self.targets[item]))
         else:
             input_sample = self.dataset[item][0]
             spad_sample = self.dataset[item][1]
@@ -225,11 +215,25 @@ class ImageFolder(VisionDataset):
         spad_sample = self.spad_transform(spad_sample)
         target_sample = self.target_transform(target_sample)
         input_sample, spad_sample, target_sample = self.data_augmentation(input_sample, spad_sample, target_sample)
-        input_sample, spad_sample, target_sample = normalize(input_sample, spad_sample, target_sample)
+        input_sample, spad_sample, target_sample = self.normalize(input_sample, spad_sample, target_sample)
         if self.isMonochrome:
             input_sample, spad_sample, target_sample = cvt_monochrome(input_sample, spad_sample, target_sample)
 
         return input_sample, spad_sample, target_sample
+
+    def normalize(self, input_, spad, target):
+        """
+        normalizes input to [0, 255], spad and target to [0, >255]
+        :param input_: input tensor. Expects original input image files to be 16-bit PNG (uint16)
+        :param spad: side input tensor. Expects original input image files to be 32-bit .hdr (float32)
+        :param target: target tensor. Expects original label image files to be 32-bit .hdr (float32)
+        :return: normalized input and label
+        """
+        input_ = input_ / self.cmos_saturation * 255
+        spad = spad / self.cmos_saturation * 255
+        target = target / self.cmos_saturation * 255
+
+        return input_, spad, target
 
     def data_augmentation(self, input_, spad, target):
         """

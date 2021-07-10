@@ -96,7 +96,7 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform,
                                      target_transform=transform, indices=indices, load_all=load_all,
-                                     monochrome=monochrome, augment=augment),
+                                     monochrome=monochrome, augment=augment, cmos_sat=CMOS_sat),
         batch_size=batch_size, num_workers=_num_workers, shuffle=False, sampler=sampler)
     return data_loader
 
@@ -532,7 +532,7 @@ def show_predictions(net, device, target_idx, pre_trained_params_path):
     test_iter = iter(test_loader)
 
     net.to(device)
-    vgg_net = VGGPerceptualLoss()
+    vgg_net = VGGLoss()
     vgg_net.to(device)
 
     if target_idx is -1:  # batch
