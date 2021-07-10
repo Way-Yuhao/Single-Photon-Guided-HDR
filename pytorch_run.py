@@ -1,4 +1,5 @@
 import os
+import os.path as p
 import numpy as np
 import cv2
 import torch
@@ -8,7 +9,6 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-# from Models import U_Net
 from lum_fusion_model import IntensityGuidedHDRNet
 import customDataFolder
 from radiance_writer import radiance_writer
@@ -18,18 +18,19 @@ from external.vgg import VGGLoss
 """Global Parameters"""
 version = None  # version of the model, defined in main()
 monochrome = True  # True if in monochromatic mode
-mini_model = False
-redirect_plt = not mini_model
-visualize_mask = False
-train_param_path = "./model/unet/"
-plt_path = "./plt/"
+mini_model = False  # True if only run train/dev on the small subset of the full dataset
+redirect_plt = not mini_model  # True if saving pyplot into PNG files, False if displaying through plt.show()
+visualize_mask = False  # True if visualizing the 2nd attention mask; for debugging only
+down_sp_rate = 1  # down sample rate; OBSOLETE
+train_param_path = "./model/unet/"  # path for loading/saving network weights; need to specify version in main()
+plt_path = "./plt/"  # path for saving pyplot outputs when redirect_plt == True
 
 """train & dev set"""
 # if mini_model:
 #     input_path = "../data/small_shuffled/CMOS/"
 #     target_path = "../data/small_shuffled/ideal/"
 #     spad_path = "../data/small_shuffled/SPAD/"
-# else:
+# else:  # full model
 #     input_path = "../data/combined_shuffled/CMOS/"
 #     target_path = "../data/combined_shuffled/ideal/"
 #     spad_path = "../data/combined_shuffled/SPAD/"
@@ -39,22 +40,20 @@ plt_path = "./plt/"
 # target_path = "../data/test/ideal/"
 # spad_path = "../data/test/SPAD/"
 
-"""test set - real data"""
+"""real data"""
 input_path = "../data/real_data/fire2/CMOS/"
 target_path = "../data/real_data/fire2/ideal/"
 spad_path = "../data/real_data/fire2/SPAD/"
 
-down_sp_rate = 1  # down sample rate
-
 """Hyper Parameters"""
-init_lr = 0.001  # initial learning rate
-epoch = 2000
-MAX_ITER = int(1e5)  # 1e10 in the provided file
+init_lr = 0.001      # initial learning rate
+epoch = 2000         # number of epochs used in training
+
 if mini_model:
     num_workers_train = 0
     num_workers_val = 0
     batch_size = 16
-else:
+else:  # full model
     num_workers_train = 16
     num_workers_val = 8
     batch_size = 18
@@ -68,7 +67,7 @@ CMOS_sat = CMOS_fwc / CMOS_T  # saturation value of the CMOS simulated images
 def set_device():
     """
     Sets device to CUDA if available
-    :return: CUDA if available
+    :return: CUDA device 0, if available
     """
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
@@ -82,15 +81,17 @@ def set_device():
 def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler=None, indices=None,
                   _num_workers=0, load_all=True, augment=True):
     """
-    custom dataloader that loads .hdr and .png data.
-    :param _num_workers:
-    :param indices:
-    :param input_path_: path to input images
-    :param spad_path_: path to spad input images
-    :param target_path_: path to target images
-    :param transform: requires transform to only consist of ToTensor
-    :param sampler:
-    :return: dataloader object
+    custom data loader that loads CMOS and SPAD inputs, and ground truth. Requires .hdr file type
+    :param input_path_: path to input CMOS images
+    :param spad_path_: path to input SPAD images
+    :param target_path_: path to ground truth
+    :param transform: transform applied to loaded tensors; None by default
+    :param sampler: sampler used to separate train / dev sets
+    :param indices: OBSOLETE
+    :param _num_workers: number of workers for pytorch data loader
+    :param load_all: set True if loading all images into RAM; requires high RAM space
+    :param augment: set True if applying data augmentation
+    :return: None
     """
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=transform,
@@ -103,9 +104,9 @@ def load_hdr_data(input_path_, spad_path_, target_path_, transform=None, sampler
 def load_network_weights(net, path):
     """
     loads pre-trained weights from path and prints message
-    :param net:
-    :param path:
-    :return:
+    :param net: pytorch network object
+    :param path: path to load network weights
+    :return: None
     """
     print("loading pre-trained weights from {}".format(path))
     net.load_state_dict(torch.load(path))
@@ -146,24 +147,11 @@ def init_dir():
     global plt_path
     plt_dir = os.path.join(plt_path, version)
     if os.path.exists(plt_dir):
-        # raise FileExistsError("ERROR: directory {} already exists".format(plt_dir))
+        raise FileExistsError("ERROR: directory {} for pyplot outputs already exists. Please remove.".format(plt_dir))
         pass
     else:
         os.mkdir(plt_dir)
     return
-
-
-def tone_map_single(img):
-    """
-    Tone-mapping algorithm proposed by Nima Khademi Kalantari and Ravi Ramamoorthi.
-    Deep high dynamic range imaging of dynamic scenes.
-    ACM Transactions on Graphics (Proc. of ACM SIGGRAPH), 36(4):144–1, 2017.
-    :param img: image tensor
-    :return: tone-mapped img
-    """
-    mu = 5000  # amount of compression
-    img = torch.log(1 + mu * img) / np.log(1 + mu)
-    return img
 
 
 def tone_map(output, target):
@@ -172,8 +160,8 @@ def tone_map(output, target):
     Deep high dynamic range imaging of dynamic scenes.
     ACM Transactions on Graphics (Proc. of ACM SIGGRAPH), 36(4):144–1, 2017.
     :param output: output tensor of the neural network
-    :param target: label tensor
-    :return: tone-mapped output and target tensors
+    :param target: ground truth tensor
+    :return: tone-mapped output and ground truth tensors
     """
     mu = 2000  # amount of compression
     output = torch.log(1 + mu * output) / np.log(1 + mu)
@@ -183,10 +171,11 @@ def tone_map(output, target):
 
 def compute_l1_perc(output, target, vgg_net):
     """
-
-    :param output:
-    :param target:
-    :return:
+    applies tone mapping and computes a linear combination of L1 and perceptual loss
+    :param vgg_net: pre-trained vgg network used to compute perceptual loss
+    :param output: output tensor of the neural network
+    :param target: ground truth tensor
+    :return: a linear combination of tone mapped L1 loss and tone mapped perceptual loss
     """
     if visualize_mask:
         return None
@@ -206,6 +195,7 @@ def compute_l1_perc(output, target, vgg_net):
 
 def compute_l1_loss(output, target):
     """
+    OBSOLETE
     computes the L1 loss between output and target after tone-mapping
     :param output: output tensor of the neural network
     :param target: label tensor
@@ -239,6 +229,7 @@ def save_hdr(img, path, suppress_print=False):
     saves 32-bit .hdr image
     :param img: image tensor of shape (1, c, h, w)
     :param path: path to save the image to
+    :param suppress_print: True if suppressing stdout
     :return: None
     """
     img = img.detach().clone()
@@ -302,9 +293,10 @@ def flush_plt():
 
 def select_example(iter_, idx):
     """
-    Issue: only works when mini batch size = 1
-    :param iter_:
-    :param idx:
+    iterates through a dataset and returns a tuple of (input, spad, target) according to a specified index
+    WARNING: only works when mini batch size = 1
+    :param iter_: iterator of data loader
+    :param idx: index of the desired tuple (input, spad, target)
     :return:
     """
     input_, spad, target = None, None, None
@@ -333,15 +325,14 @@ def save_weights(net, ep=None):
 def disp_sample(input_, spad, output, target, idx=0, msg=""):
     """
     helper function that displays a triplet of input, output, and target
-    :param input_:
-    :param spad:
-    :param output:
-    :param target:
-    :param idx:
-    :param msg:
-    :return:
+    :param input_: CMOS input tensor
+    :param spad: SPAD input tensor
+    :param output: network output tensor
+    :param target: ground truth tensor
+    :param idx: index in the data loader, for title
+    :param msg: message to be printed
+    :return: None
     """
-
     if len(input_.size()) == 4:
         if input_ is not None:
             disp_plt(input_[idx, :, :, :], title=msg + " / input", tone_map=True)
@@ -369,6 +360,7 @@ def disp_sample(input_, spad, output, target, idx=0, msg=""):
 
 def median_filter(img):
     """
+    OBSOLETE
     applies median filter to an image tensor
     :param img: numpy image array of shape (h, w, 3)
     :return: median filtered image tensor
@@ -378,14 +370,14 @@ def median_filter(img):
 
 def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0, vgg_net=None):
     """
-    computes the loss on the dev set, without backprop
-    :param vgg_net:
+    computes the loss on the dev set, without back propagation
     :param net: pytorch model object
     :param device: CUDA device, if available
     :param dev_loader: dev set data loader
     :param epoch_idx: current epoch number, for printing
     :param tb: tensorboard object
     :param target_idx: target sample index to return
+    :param vgg_net: pre-trained vgg network used to compute perceptual loss
     :return: loss for entire dev set (1 epoch), sample output in dev set
     """
     dev_iter = iter(dev_loader)
@@ -402,10 +394,7 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0, vgg_net=None):
             running_loss += loss.item()
         # record loss values
         dev_loss = running_loss / num_mini_batches
-        # print("val loss = {:.3f}".format(dev_loss))
         tb.add_scalar('loss/dev', dev_loss, epoch_idx)
-    # net.train()
-
     sample_output = output[target_idx, :, :, :]
 
     return dev_loss, sample_output
@@ -413,7 +402,7 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0, vgg_net=None):
 
 def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None):
     """
-    performs a train/dev split
+    performs a train/dev split, and then runs training while computing dev loss at each epoch
     :param net: pytorch model object
     :param device: CUDA device, if available
     :param tb: tensorboard object
@@ -497,61 +486,11 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     return
 
 
-def train(net, device, tb, load_weights=False, pre_trained_params_path=None):
-    """
-    performs training only
-    :param net: pytorch model object
-    :param device: CUDA device, if available
-    :param tb: tensorboard object
-    :param load_weights: boolean flag, set true to load pre-trained weights
-    :param pre_trained_params_path: path to load pre-trained network weights
-    :return: None
-    """
-    print_params()  # print hyper parameters
-    print("training")
-    net.to(device)
-    net.train()
-    if load_weights:
-        load_network_weights(net, pre_trained_params_path)
-    train_loader = load_hdr_data(input_path, spad_path, target_path)
-    num_mini_batches = len(train_loader)  # number of mini-batches per epoch
-    optimizer = optim.Adam(net.parameters(), lr=init_lr)
-
-    # training loop
-    running_loss = 0.0
-    output = None
-    for ep in range(epoch):
-        print("Epoch ", ep)
-        train_iter = iter(train_loader)
-
-        for _ in tqdm(range(num_mini_batches)):
-            input_, spad, target = train_iter.next()
-            input_, spad, target = input_.to(device), spad.to(device), target.to(device)
-            optimizer.zero_grad()
-            output = net(input_, spad)
-            loss = compute_l1_loss(output, target)
-            loss.backward()
-            optimizer.step()
-            running_loss += loss.item()
-        # record loss values
-        loss_cur_batch = running_loss / num_mini_batches
-        print("loss = {:.3f}".format(loss_cur_batch))
-        tb.add_scalar('training loss', loss_cur_batch, ep)
-
-        if ep % 10 == 9 or True:  # for every 10 epochs
-            save_16bit_png(output[0, :, :, :], path="./out_files/train_epoch_{}_{}.png".format(ep + 1, version))
-            disp_plt(output[0, :, :, :], title="sample training output in epoch {}".format(ep + 1), tone_map=True)
-
-    print("finished training")
-    save_16bit_png(target[0, :, :, :], path="./out_files/sample_ground_truth.png")
-    save_weights(net, ep="{}_FINAL".format(epoch))
-    return
-
-
 def show_pred_all(net, device, loader_iter, size):
     """
     displaying network output for all inputs in the dataset
     :param net: pytorch object
+    :param device: CUDA device
     :param loader_iter: iterator of the data loader
     :param size: size of the data set
     :return: None
@@ -579,8 +518,9 @@ def show_pred_all(net, device, loader_iter, size):
 def show_predictions(net, device, target_idx, pre_trained_params_path):
     """
     displays and saves a select sample output
-    :param target_idx:
     :param net: pytorch object
+    :param device: CUDA device
+    :param target_idx: index in the dataset to be run
     :param pre_trained_params_path: path to load pre-trained weights
     :return: None
     """
@@ -624,6 +564,16 @@ def show_predictions(net, device, target_idx, pre_trained_params_path):
 
 
 def show_prediction_real_data(net, device, pre_trained_params_path):
+    """
+    displays network prediction on real data.
+    Requirements:
+        * specify CMOS saturation limit in CMOS_sat
+        * may need to manually adjust normalization in data loading stage
+    :param net: pytorch object
+    :param device: CUDA device
+    :param pre_trained_params_path: path to load pre-trained weights
+    :return: None
+    """
     global redirect_plt, batch_size
 
     print("Showing prediction on real data.\nCMOS saturation limit set to {}".format(CMOS_sat))
@@ -661,24 +611,27 @@ def show_prediction_real_data(net, device, pre_trained_params_path):
 
 def main():
     """
-    main function
+    main function of the script. Select among the following options:
+        * train_dev(): performs training while computing dev loss
+        * show_predictions(): performs testing across dataset or on a specified index in the dataset
+        * show_prediction_real_data(): performs testing on real data
     :return: None
     """
     global batch_size, version
     print("======================================================")
+    # define version of the network here; used in tensorboard, loading/saving network weights
     version = "-v2.15.14-opt2"
-    # param_to_load = train_param_path + "unet{}_epoch_{}_FINAL.pth".format(version, epoch)
-    param_to_load = train_param_path + "unet-v2.15.14_epoch_1819_OPT.pth"
+    # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
+    param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
     net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
-    # train(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
     show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
 
-    tb.close()
-    flush_plt()
+    tb.close()  # closes tensorbaord
+    # flush_plt()  # useful only in PyCharm
 
 
 if __name__ == "__main__":
