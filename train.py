@@ -20,12 +20,10 @@ DEFAULT_CMOS_SAT = 33400 / .01
 def get_args():
     parser = argparse.ArgumentParser(description="Single-Photon Camera Guided HDR Imaging")
     parser.add_argument("--input", "-i", type=str, required=True, help="Input image directory.")
-    parser.add_argument("--out", "-o", type=str, required=True, help="Path to output directory.")
+    parser.add_argument("--out", "-o", type=str, required=True, help="Path to pyplot output directory.")
     parser.add_argument("--weights", "-w", type=str, required=True, help="Path to pre-trained neural network weights.")
     parser.add_argument("--cpu", action="store_true", help="Toggle to use CPU only.")
     parser.add_argument("--saturation", "-s", type=float, help="CMOS saturation limit.")
-    parser.add_argument("--gain", "-g", type=float, help="Gain applied to SPAD image; for debugging only.")
-    parser.add_argument("--experimental", "-e", action="store_true", help="Toggle if using experimental data")
     parser.add_argument("--plot", "-p", action="store_true", help="Toggle to use plt.imshow().")
 
     args = parser.parse_args()
@@ -144,8 +142,6 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     :param pre_trained_params_path: path to load pre-trained network weights
     :return: None
     """
-    print_params()  # print hyper parameters
-    init_dir()
     net.to(device)
     net.train()
 
@@ -226,7 +222,7 @@ def main():
     device = set_device()
     print_args(device)
     net = IntensityGuidedHDRNet(isMonochrome=True, outputMask=False)
-    test(net, device)
+    train_dev(net, device)
 
 
 if __name__ == "__main__":

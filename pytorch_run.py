@@ -12,8 +12,9 @@ import matplotlib.pyplot as plt
 from lum_fusion_model import IntensityGuidedHDRNet
 import customDataFolder
 from radiance_writer import radiance_writer
-from vgg_perceptual_loss import VGGPerceptualLoss
 from external.vgg import VGGLoss
+from ablation_study.model_no_attention import HDRNetNoAttention
+from ablation_study.model_no_spad import HDRNetNoSpad
 
 """Global Parameters"""
 version = None  # version of the model, defined in main()
@@ -26,14 +27,14 @@ train_param_path = "./model/unet/"  # path for loading/saving network weights; n
 plt_path = "./plt/"  # path for saving pyplot outputs when redirect_plt == True
 
 """train & dev set"""
-# if mini_model:
-#     input_path = "../data/small_shuffled/CMOS/"
-#     target_path = "../data/small_shuffled/ideal/"
-#     spad_path = "../data/small_shuffled/SPAD/"
-# else:  # full model
-#     input_path = "../data/combined_shuffled/CMOS/"
-#     target_path = "../data/combined_shuffled/ideal/"
-#     spad_path = "../data/combined_shuffled/SPAD/"
+if mini_model:
+    input_path = "../data/small_shuffled/CMOS/"
+    target_path = "../data/small_shuffled/ideal/"
+    spad_path = "../data/small_shuffled/SPAD/"
+else:  # full model
+    input_path = "../data/combined_shuffled/CMOS/"
+    target_path = "../data/combined_shuffled/ideal/"
+    spad_path = "../data/combined_shuffled/SPAD/"
 
 """test set"""
 # input_path = "../data/test/CMOS/"
@@ -41,9 +42,9 @@ plt_path = "./plt/"  # path for saving pyplot outputs when redirect_plt == True
 # spad_path = "../data/test/SPAD/"
 
 """real data"""
-input_path = "../data/real_data/fire2/CMOS/"
-target_path = "../data/real_data/fire2/ideal/"
-spad_path = "../data/real_data/fire2/SPAD/"
+# input_path = "../data/real_data/fire2/CMOS/"
+# target_path = "../data/real_data/fire2/ideal/"
+# spad_path = "../data/real_data/fire2/SPAD/"
 
 """Hyper Parameters"""
 init_lr = 0.001      # initial learning rate
@@ -56,7 +57,7 @@ if mini_model:
 else:  # full model
     num_workers_train = 16
     num_workers_val = 8
-    batch_size = 18
+    batch_size = 16
 
 """Simulation Parameters"""
 CMOS_fwc = 33400  # full well capacity of the CMOS sensor
@@ -147,7 +148,7 @@ def init_dir():
     global plt_path
     plt_dir = os.path.join(plt_path, version)
     if os.path.exists(plt_dir):
-        raise FileExistsError("ERROR: directory {} for pyplot outputs already exists. Please remove.".format(plt_dir))
+        # raise FileExistsError("ERROR: directory {} for pyplot outputs already exists. Please remove.".format(plt_dir))
         pass
     else:
         os.mkdir(plt_dir)
@@ -423,7 +424,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
         load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
     validation_split = .2
-    dataset = customDataFolder.ImageFolder(input_path, spad_path, target_path, load_all=False)
+    dataset = customDataFolder.ImageFolder(input_path, spad_path, target_path, load_all=False, cmos_sat=CMOS_sat)
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     split = int(np.floor(validation_split * dataset_size))
@@ -484,6 +485,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     print("finished training")
     save_weights(net, ep="{}_FINAL".format(epoch))
     return
+
 
 
 def show_pred_all(net, device, loader_iter, size):
@@ -586,7 +588,7 @@ def show_prediction_real_data(net, device, pre_trained_params_path):
     size = len(test_loader)
 
     net.to(device)
-    vgg_net = VGGPerceptualLoss()
+    vgg_net = VGGLoss()
     vgg_net.to(device)
 
     if os.path.exists("./out_files/pred_real_data/{}/".format(version)):
@@ -620,18 +622,27 @@ def main():
     global batch_size, version
     print("======================================================")
     # define version of the network here; used in tensorboard, loading/saving network weights
-    version = "-v2.15.14-opt2"
+    version = "-v3.0.1"
     # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
-    param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
+    # param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
-    net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
+    # net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
-    show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
+    # show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
+
+    ########## ablation study ############
+    net_no_att = HDRNetNoAttention(isMonochrome=True)
+    train_dev(net_no_att, device, tb, load_weights=False, pre_trained_params_path=None)
+
+    # net_no_spad = HDRNetNoSpad(isMonochrome=True)
+    # train_dev(net_no_spad, device, tb, load_weights=False, pre_trained_params_path=None)
+
+
 
     tb.close()  # closes tensorbaord
-    # flush_plt()  # useful only in PyCharm
+    flush_plt()  # useful only in PyCharm
 
 
 if __name__ == "__main__":

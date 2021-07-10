@@ -38,75 +38,6 @@ def down_sample(input_, target, down_sp_rate):
     return input_, target
 
 
-def random_crop(input_, spad, target):
-    """
-    applies random cropping and returns a section of CMOS input, SPAD input, and ground truth
-    :param input_: CMOS input
-    :param spad: SPAD input
-    :param target: ground truth
-    :return: 3 crops of size defined in function
-    """
-    crop_width = 512
-    crop_height = 256
-    diff = 4
-    sat_bound = .1 * crop_width * crop_height
-
-    max_h = input_.shape[1] - crop_height
-    max_w = input_.shape[2] - crop_width
-
-    is_saturated = False
-    input_crop, spad_crop, target_crop = None, None, None
-    counter = 10
-    while not is_saturated and counter > 0:
-        h = np.random.randint(0, max_h/2) * 2  # random even numbers
-        w = np.random.randint(0, max_w/2) * 2
-        input_crop = input_[:, h: h + crop_height, w: w + crop_width]
-        target_crop = target[:, h: h + crop_height, w: w + crop_width]
-        spad_crop = spad[:, int(h/diff): int((h + crop_height)/diff), int(w/diff): int((w + crop_width)/diff)]
-        if torch.sum(input_crop > CMOS_sat) > sat_bound:
-            is_saturated = True
-        else:
-            counter -= 1
-
-    return input_crop, spad_crop, target_crop
-
-
-def random_horizontal_flip(input_, spad, target, p=.5):
-    """
-    applies a random horizontal flip
-    :param input_: CMOS input
-    :param spad: SPAD input
-    :param target: ground truth
-    :param p: probability of applying the flip
-    :return: flipped or original images
-    """
-    x = np.random.rand()
-    if x < p:
-        input_ = torch.flip(input_, (2,))
-        spad = torch.flip(spad, (2,))
-        target = torch.flip(target, (2,))
-
-    return input_, spad, target
-
-
-def random_rotation(input_, spad, target, p=.25):
-    """
-    applies a random 90 degree rotation
-    :param input_: CMOS input
-    :param spad: SPAD input
-    :param target: ground truth
-    :param p: probability of applying the rotation
-    :return: rotated or original images
-    """
-    x = np.random.rand()  # probability of rotation
-    if x < p:
-        input_ = torch.rot90(input_, 2, [1, 2])
-        spad = torch.rot90(spad, 2, [1, 2])
-        target = torch.rot90(target, 2, [1, 2])
-
-    return input_, spad, target
-
-
 def cvt_monochrome(input_, spad, target):
     """
     converts BGR color image to monochrome. The output contains 3 copies of green channel
@@ -246,9 +177,76 @@ class ImageFolder(VisionDataset):
         if self.augment is False:
             pass
         else:
-            input_, spad, target = random_crop(input_, spad, target)
-            input_, spad, target = random_horizontal_flip(input_, spad, target)
-            input_, spad, target = random_rotation(input_, spad, target)
+            input_, spad, target = self.random_crop(input_, spad, target)
+            input_, spad, target = self.random_horizontal_flip(input_, spad, target)
+            input_, spad, target = self.random_rotation(input_, spad, target)
+        return input_, spad, target
+
+    def random_crop(self, input_, spad, target):
+        """
+        applies random cropping and returns a section of CMOS input, SPAD input, and ground truth
+        :param input_: CMOS input
+        :param spad: SPAD input
+        :param target: ground truth
+        :return: 3 crops of size defined in function
+        """
+        crop_width = 512
+        crop_height = 256
+        diff = 4
+        sat_bound = .1 * crop_width * crop_height
+
+        max_h = input_.shape[1] - crop_height
+        max_w = input_.shape[2] - crop_width
+
+        is_saturated = False
+        input_crop, spad_crop, target_crop = None, None, None
+        counter = 10
+        while not is_saturated and counter > 0:
+            h = np.random.randint(0, max_h / 2) * 2  # random even numbers
+            w = np.random.randint(0, max_w / 2) * 2
+            input_crop = input_[:, h: h + crop_height, w: w + crop_width]
+            target_crop = target[:, h: h + crop_height, w: w + crop_width]
+            spad_crop = spad[:, int(h / diff): int((h + crop_height) / diff),
+                        int(w / diff): int((w + crop_width) / diff)]
+            if torch.sum(input_crop > self.cmos_saturation) > sat_bound:
+                is_saturated = True
+            else:
+                counter -= 1
+
+        return input_crop, spad_crop, target_crop
+
+    def random_horizontal_flip(self, input_, spad, target, p=.5):
+        """
+        applies a random horizontal flip
+        :param input_: CMOS input
+        :param spad: SPAD input
+        :param target: ground truth
+        :param p: probability of applying the flip
+        :return: flipped or original images
+        """
+        x = np.random.rand()
+        if x < p:
+            input_ = torch.flip(input_, (2,))
+            spad = torch.flip(spad, (2,))
+            target = torch.flip(target, (2,))
+
+        return input_, spad, target
+
+    def random_rotation(self, input_, spad, target, p=.25):
+        """
+        applies a random 90 degree rotation
+        :param input_: CMOS input
+        :param spad: SPAD input
+        :param target: ground truth
+        :param p: probability of applying the rotation
+        :return: rotated or original images
+        """
+        x = np.random.rand()  # probability of rotation
+        if x < p:
+            input_ = torch.rot90(input_, 2, [1, 2])
+            spad = torch.rot90(spad, 2, [1, 2])
+            target = torch.rot90(target, 2, [1, 2])
+
         return input_, spad, target
 
     def check_files(self):
