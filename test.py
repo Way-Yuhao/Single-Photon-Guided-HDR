@@ -151,7 +151,6 @@ def test(net, device):
     print("testing on {} images".format(dataset_size))
 
     # experimental
-
     spad_gain = 1.0 if not args.gain else args.gain
 
     net.to(device)
