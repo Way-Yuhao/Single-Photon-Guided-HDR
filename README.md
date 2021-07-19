@@ -29,6 +29,17 @@ Install all dependent libraries:
   pip install -r requirements.txt
   ```
 
+### Input file directory structure
+>$input directory$<br/>
+>>CMOS<br/>
+>>SPAD<br/>
+>>ideal (optional)<br/>
+
+Both CMOS and SPAD inputs are required. A ground truth (ideal) image can be added to compute the loss of network output.
+
+### CMOS & SPAD image requirements
+* To properly use our provided ```test.py``` testing script, it is required to know the constant CMOS saturation limit for all CMOS images. This value is used to normalize input data for the neural network. 
+
 ## 3. Usage
 
 ### Pretrained model
@@ -37,7 +48,7 @@ TODO: define pre-trained model
 ### Inference
 
 ```
-python test.py --input <input/dir> --out <output/dir> --weights <weight/path>.pth 
+python test.py --input <input/dir> --out <output/dir> --weights <weight/path>.pth --saturation <saturation/float>
 ```
 
 Parameters and their descriptions:
