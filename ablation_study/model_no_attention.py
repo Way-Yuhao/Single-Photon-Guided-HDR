@@ -6,6 +6,8 @@ import torch.nn.functional as F
 import torch.utils.data
 import torchvision.models as models
 from lum_fusion_model import ConvLayer, DeConvBlock, AttentionBlock, OneByOneConvBlock
+from ablation_study.model_no_spad import HDRNetNoSpad
+
 
 
 class HDRNetNoAttention(nn.Module):

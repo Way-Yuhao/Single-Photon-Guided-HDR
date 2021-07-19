@@ -11,7 +11,6 @@ from pytorch_run import tone_map, compute_l1_perc, save_hdr
 from lum_fusion_model import IntensityGuidedHDRNet
 from external.vgg import VGGLoss
 import customDataFolder
-from radiance_writer import radiance_writer
 
 args = None
 DEFAULT_CMOS_SAT = 33400 / .01
@@ -61,6 +60,8 @@ def print_args(device):
         print("\t CUDA is available. Testing on gpu")
     if args.saturation:
         print("\t Setting CMOS saturation limit to {}".format(args.saturation))
+    else:
+        print("\t WARNING: using default cmos saturation value {}".format(DEFAULT_CMOS_SAT))
     if args.gain:
         print("\t Applying a gain of {} to SPAD input images".format(args.gain))
     if args.experimental:
@@ -95,10 +96,13 @@ def load_hdr_data(input_path_, spad_path_, target_path_):
     :param target_path_: path to ground truth
     :return: None
     """
+    if not args.saturation:
+        cmos_saturation = DEFAULT_CMOS_SAT
+
     data_loader = torch.utils.data.DataLoader(
         customDataFolder.ImageFolder(input_path_, spad_path_, target_path_, input_transform=None,
                                      target_transform=None, indices=None, load_all=False,
-                                     monochrome=True, augment=False, cmos_sat=args.saturation),
+                                     monochrome=True, augment=False, cmos_sat=cmos_saturation),
         batch_size=1, num_workers=0, shuffle=False, sampler=None)
     return data_loader
 

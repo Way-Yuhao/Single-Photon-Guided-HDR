@@ -622,7 +622,7 @@ def main():
     global batch_size, version
     print("======================================================")
     # define version of the network here; used in tensorboard, loading/saving network weights
-    version = "-v3.0.1"
+    version = "-v3.1.1"
     # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
     # param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
     tb = SummaryWriter('./runs/unet' + version)
@@ -633,11 +633,11 @@ def main():
     # show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
 
     ########## ablation study ############
-    net_no_att = HDRNetNoAttention(isMonochrome=True)
-    train_dev(net_no_att, device, tb, load_weights=False, pre_trained_params_path=None)
+    # net_no_att = HDRNetNoAttention(isMonochrome=True)
+    # train_dev(net_no_att, device, tb, load_weights=False, pre_trained_params_path=None)
 
-    # net_no_spad = HDRNetNoSpad(isMonochrome=True)
-    # train_dev(net_no_spad, device, tb, load_weights=False, pre_trained_params_path=None)
+    net_no_spad = HDRNetNoSpad(isMonochrome=True)
+    train_dev(net_no_spad, device, tb, load_weights=False, pre_trained_params_path=None)
 
 
 
