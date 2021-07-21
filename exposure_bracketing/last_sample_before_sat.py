@@ -69,17 +69,31 @@ def save(img, idx, mode="png", gamma=2.2, monochrome=False):
 
 def run():
     global out_path
-    out_path = "../simulated_outputs/artificial/"
-    path1 = "../simulated_outputs/artificial/log_out/0_cmos_.000001s.hdr"
-    path2 = "../simulated_outputs/artificial/log_out/0_cmos_.01s.hdr"
+    diff = '2x'
+    out_path = "./snr_study/out/"
+    path_1 = "./snr_study/input_snr_study/{}.hdr".format(diff)
+    path_2 = "./snr_study/input_snr_study/1x.hdr"
+
     # path1 = "../simulated_outputs/artificial/log_out/0_gt_.000001s.hdr"
     # path2 = "../simulated_outputs/artificial/log_out/0_gt_.01s.hdr"
 
 
-    img2 = cv2.imread(path1, -1).astype('float64')
-    img1 = cv2.imread(path2, -1).astype('float64')
-    merged = last_sample_before_sat_scaling(img1, img2, 1000000)
-    save(merged, 0, "hdr", gamma=4)
+    img2 = cv2.imread(path_1, -1).astype('float64')
+    img1 = cv2.imread(path_2, -1).astype('float64')
+    merged = last_sample_before_sat_scaling(img1, img2, 1)
+    # save(merged, 0, "hdr", gamma=4)
+
+    monochrome = np.dstack((merged[:, :, 1], merged[:, :, 1], merged[:, :, 1]))
+    radiance_writer(monochrome, p.join(out_path, "{}x_merged.hdr".format(diff)))
+
+    tonemapDrago = cv2.createTonemapDrago(1.0, 1.0)
+    t_img = tonemapDrago.process(monochrome.astype('float32'))
+    t_img = np.nan_to_num(t_img, nan=0.0)
+    img_16bit = t_img * 2 ** 16
+    img_16bit[img_16bit >= 2 ** 16 - 1] = 2 ** 16 - 1
+    img_16bit = img_16bit.astype('uint16')
+
+    cv2.imwrite(p.join(out_path, "tm_{}_merged.png".format(diff)), img_16bit)
 
 
 def run_all():
@@ -126,8 +140,8 @@ def cvt_monochrome():
 
 
 def main():
-    run_all()
-    # run()
+    # run_all()
+    run()
     # cvt_monochrome()
 
 

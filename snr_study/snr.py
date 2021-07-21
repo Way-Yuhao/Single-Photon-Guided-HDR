@@ -21,14 +21,14 @@ import matplotlib.pyplot as plt
 """SPAD constants"""
 T = .01    # exposure time (s) [arbitrary]
 q = .4  # quantum efficiency [experimental, Sup 7]
-tau = 149.7e-9  # dead time (s)
+tau = 150e-9  # dead time (s)
 dark_count = 0  # dark count rate (photons/s) [experimental, Sup 7]
 p_ap = 0  # after-pulsing probability [exp, Sup 7]
 
 "CCD constants - naive"
-T_short = 0.0001
+T_short = 0.000001
 T_long = 0.01
-fwc = 2**12  # full well capacity (electrons) [Sup 7]
+fwc = 33400  # full well capacity (electrons) [Sup 7]
 q_cmos = .7  # quantum efficiency [Sup 7]
 sigma_r = 0  # read noise power (electrons) [Sup 7]
 
@@ -94,11 +94,15 @@ def main():
     ccd_n_spad()
     plt.xscale("log")
     plt.ylim(top=70, bottom=-20)
+    plt.xlim([10 ** 2.5, 10 ** 11.5])
     plt.title("Theoretical SNR vs Incident Flux")
     plt.ylabel("theoretical SNR (dB)")
     plt.xlabel("incident photon flux")
-    plt.legend(loc="lower right")
-    plt.show()
+    plt.legend(loc="upper left")
+    # plt.show()
+
+    out_path = "../paper/asset/snr_curve_xlim.svg"
+    plt.savefig(out_path, format="svg")
 
 
 if __name__ == "__main__":

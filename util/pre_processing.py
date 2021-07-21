@@ -12,6 +12,16 @@ path = "../test/"
 out_path = "../test/CMOS_8bit_PNG"
 
 
+def cvt_monochrome_all():
+    input_path = "../test/sims/CMOS_8bit_PNG"
+    output_path = "../test/sims/CMOS_8bit_mono"
+    for i in tqdm(range(105)):
+        img = cv2.imread(p.join(input_path, "{}_cmos.png".format(i)))
+        img = np.dstack((img[:, :, 1], img[:, :, 1], img[:, :, 1]))
+        cv2.imwrite(p.join(output_path, "{}_cmos.png".format(i)), img)
+
+
+
 def measure_cmos():
     cmos_path = p.join(path, "CMOS")
     cmos_list = natsorted(os.listdir(cmos_path))
@@ -156,9 +166,11 @@ def super_res():
 
 
 def main():
-    read_mat_fire()
+    # read_mat_fire()
     # super_res()
     # read_small_mid_crop()
+
+    cvt_monochrome_all()
 
 
 if __name__ == "__main__":

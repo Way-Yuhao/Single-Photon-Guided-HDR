@@ -41,7 +41,8 @@ CMOS_on = True              # toggle on to enable CMOS simulator
 CMOS_mono = False           # if the sensor is monochromatic
 CMOS_fwc = 33400            # full well capacity with a 15 bit sensor
 # CMOS_T = .01                # exposure time in seconds
-CMOS_T = .000001                # exposure time in seconds
+# CMOS_T = .000001                # exposure time in seconds
+CMOS_T = .005                # exposure time in seconds
 # CMOS_gain = 1             # uniform gain applied to the analog signal
 CMOS_down_sample_rate = 1   # spatial down sampling rate of the sensor
 CMOS_qe = {                 # quantum efficiency index for each color channel
@@ -104,13 +105,13 @@ def scale_flux(flux):
     scales the flux matrix by a constant
     :return: scaled ground truth matrix
     """
-    # flux *= 1e6 * 5  # HDRI
+    flux *= 1e6 * 5  # HDRI
     # flux *= 1e7 * 10 # Laval Indoor
 
 
-    flux = flux / flux.max()
-    flux *= 50
-    flux *= 5e5  # HDR_MATLAB_3x3
+    # flux = flux / flux.max()
+    # flux *= 50
+    # flux *= 5e5  # HDR_MATLAB_3x3
     return flux
 
 
@@ -155,13 +156,19 @@ def run(fpath):
     for filename in tqdm(os.listdir(fpath)):
         if not filename.endswith(".hdr") and not filename.endswith(".exr"):
             continue
+        if i != 89:
+            i += 1
+            continue
+
         flux = read_flux(os.path.join(fpath, filename))
         flux = scale_flux(flux)
-        try:
-            flux = trim_dims(flux)
-        except ValueError:
-            print("image {} too small".format(i))
-            continue
+
+        # try:
+        #     flux = trim_dims(flux)
+        # except ValueError:
+        #     print("image {} too small".format(i))
+        #     continue
+
         init_simulators()
         run_simulations(flux, str(i))
         save_hist(flux, i)
@@ -228,11 +235,11 @@ def main():
     # TODO: remember to correct scaling
     # init()
     # run(collection_path + "100samplesDataset")
-    # run(collection_path + "HDRI_4k")
+    run(collection_path + "HDRI_4k")
     # run(collection_path + "HDR_MATLAB_3x3")
     # run(artificial_path)
 
-    cvt_monochrome()
+    # cvt_monochrome()
 
 
 if __name__ == "__main__":
