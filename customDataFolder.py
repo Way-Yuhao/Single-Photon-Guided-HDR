@@ -234,7 +234,7 @@ class ImageFolder(VisionDataset):
 
     def random_rotation(self, input_, spad, target, p=.25):
         """
-        applies a random 90 degree rotation
+        applies a random 180 degree rotation
         :param input_: CMOS input
         :param spad: SPAD input
         :param target: ground truth
