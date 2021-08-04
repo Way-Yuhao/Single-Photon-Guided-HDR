@@ -622,22 +622,23 @@ def main():
     global batch_size, version
     print("======================================================")
     # define version of the network here; used in tensorboard, loading/saving network weights
-    version = "-v3.1.1"
+    version = "-v3.2.0"
+    param_to_load = None
     # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
     # param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device()  # set device to CUDA if available
-    # net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
-    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
-    # show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
-    # show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
+    net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask) # for output mask, change true, and remove train_dev
+    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    #show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
+    #show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
 
     ########## ablation study ############
     # net_no_att = HDRNetNoAttention(isMonochrome=True)
     # train_dev(net_no_att, device, tb, load_weights=False, pre_trained_params_path=None)
 
-    net_no_spad = HDRNetNoSpad(isMonochrome=True)
-    train_dev(net_no_spad, device, tb, load_weights=False, pre_trained_params_path=None)
+    # net_no_spad = HDRNetNoSpad(isMonochrome=True)
+    # train_dev(net_no_spad, device, tb, load_weights=False, pre_trained_params_path=None)
 
 
 
