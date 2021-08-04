@@ -155,10 +155,10 @@ class IntensityGuidedHDRNet(nn.Module):
         # self.SpadConv5 = nn.Conv2d(side_chs[4], side_chs[5], kernel_size=2, stride=2, padding=0, bias=True)
 
         # spad encoder, with ReLU
-        self.SpadConv2 = SPADConvLayer(in_ch=side_chs[1], out_ch=side_chs[2])
-        self.SpadConv3 = SPADConvLayer(in_ch=side_chs[2], out_ch=side_chs[3])
-        self.SpadConv4 = SPADConvLayer(in_ch=side_chs[3], out_ch=side_chs[4])
-        self.SpadConv5 = SPADConvLayer(in_ch=side_chs[4], out_ch=side_chs[5])
+        self.SpadConv2 = SPADConvLayer(in_ch=side_chs[1], out_ch=side_chs[2], kernel_size=1, stride=1, padding=0, bias=True)
+        self.SpadConv3 = SPADConvLayer(in_ch=side_chs[2], out_ch=side_chs[3], kernel_size=2, stride=2, padding=0, bias=True)
+        self.SpadConv4 = SPADConvLayer(in_ch=side_chs[3], out_ch=side_chs[4], kernel_size=2, stride=2, padding=0, bias=True)
+        self.SpadConv5 = SPADConvLayer(in_ch=side_chs[4], out_ch=side_chs[5], kernel_size=2, stride=2, padding=0, bias=True)
 
         # final encoder: output # of channel is 3 for RGB, 1 for monochrome
         self.ConvOut = OneByOneConvBlock(in_ch=2 * main_chs[0], out_ch=main_chs[0] - isMonochrome * 2)
