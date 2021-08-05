@@ -71,7 +71,7 @@ def set_device():
     :return: CUDA device 0, if available
     """
     if torch.cuda.is_available():
-        device = torch.device("cuda:0")
+        device = torch.device("cuda:1")
         print("CUDA is available. Training on GPU")
     else:
         device = "cpu"
@@ -537,7 +537,7 @@ def show_predictions(net, device, target_idx, pre_trained_params_path):
     vgg_net = VGGLoss()
     vgg_net.to(device)
 
-    if target_idx is -1:  # batch
+    if target_idx == -1:  # batch
         show_pred_all(net, device, test_iter, len(test_loader))
     else:  # single
         print("testing on {} images, index = {}".format(batch_size, target_idx))
@@ -622,7 +622,7 @@ def main():
     global batch_size, version
     print("======================================================")
     # define version of the network here; used in tensorboard, loading/saving network weights
-    version = "-v3.2.0"
+    version = "-v3.1.9"
     param_to_load = None
     # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
     # param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
