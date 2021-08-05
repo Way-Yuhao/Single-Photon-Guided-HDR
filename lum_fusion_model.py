@@ -106,10 +106,10 @@ class DeConvBlock(nn.Module):
 
 
 class SPADConvLayer(nn.Module):
-    def __init__(self, in_ch, out_ch):
+    def __init__(self, in_ch, out_ch, kernel_size=2, stride=2 ,padding=0 ,bias=True):
         super(SPADConvLayer, self).__init__()
         self.encode = nn.Sequential(
-            nn.Conv2d(in_ch, in_ch, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, stride=stride, padding=padding, bias=bias),
             nn.ReLU(inplace=True)
         )
 

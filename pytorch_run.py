@@ -65,14 +65,17 @@ CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
 CMOS_sat = CMOS_fwc / CMOS_T  # saturation value of the CMOS simulated images
 
 
-def set_device():
+def set_device(devidx=0):
     """
     Sets device to CUDA if available
     :return: CUDA device 0, if available
     """
     if torch.cuda.is_available():
-        device = torch.device("cuda:0")
-        print("CUDA is available. Training on GPU")
+        if devidx==0:
+            device = torch.device("cuda:0")
+        elif devidx==1:
+            device = torch.device("cuda:1")
+        print("CUDA is available. Training on GPU devidx =", devidx)
     else:
         device = "cpu"
         print("CUDA is unavailable. Training on CPU")
@@ -537,7 +540,7 @@ def show_predictions(net, device, target_idx, pre_trained_params_path):
     vgg_net = VGGLoss()
     vgg_net.to(device)
 
-    if target_idx is -1:  # batch
+    if target_idx == -1:  # batch
         show_pred_all(net, device, test_iter, len(test_loader))
     else:  # single
         print("testing on {} images, index = {}".format(batch_size, target_idx))
