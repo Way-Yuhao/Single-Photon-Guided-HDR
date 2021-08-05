@@ -411,14 +411,14 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     :param pre_trained_params_path: path to load pre-trained network weights
     :return: None
     """
+    print(device)
     print_params()  # print hyper parameters
     init_dir()
     net.to(device)
     net.train()
 
     # init vgg net
-    vgg_net = VGGLoss()
-    vgg_net.to(device)
+    vgg_net = VGGLoss(device)
 
     if load_weights:
         load_network_weights(net, pre_trained_params_path)
