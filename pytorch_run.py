@@ -404,13 +404,12 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0, vgg_net=None):
     return dev_loss, sample_output
 
 
-def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None):
+def train_dev(net, device, tb, pre_trained_params_path=None):
     """
     performs a train/dev split, and then runs training while computing dev loss at each epoch
     :param net: pytorch model object
     :param device: CUDA device, if available
     :param tb: tensorboard object
-    :param load_weights: boolean flag, set true to load pre-trained weights
     :param pre_trained_params_path: path to load pre-trained network weights
     :return: None
     """
@@ -423,7 +422,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
     vgg_net = VGGLoss()
     vgg_net.to(device)
 
-    if load_weights:
+    if pre_trained_params_path is not None: 
         load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
     validation_split = .2
@@ -632,7 +631,7 @@ def main():
     tb = SummaryWriter('./runs/unet' + version)
     device = set_device(0)  # set device to CUDA if available
     net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask) # for output mask, change true, and remove train_dev
-    train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    train_dev(net, device, tb, pre_trained_params_path=param_to_load)
     #show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
     #show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
 
