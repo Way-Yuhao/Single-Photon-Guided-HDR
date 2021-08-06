@@ -47,8 +47,8 @@ else:  # full model
 # spad_path = "../data/real_data/fire2/SPAD/"
 
 """Hyper Parameters"""
-init_lr = 0.001      # initial learning rate
-epoch = 2000         # number of epochs used in training
+init_lr = 0.0005      # initial learning rate
+epoch = 1000         # number of epochs used in training
 
 if mini_model:
     num_workers_train = 0
@@ -446,7 +446,7 @@ def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None)
                                                                                            len(dev_loader)))
     num_mini_batches = len(train_loader)
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[500, 1000, 1500], gamma=.8)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[500, 1000, 1500], gamma=1.0)
 
     # training loop
     running_train_loss = 0.0
@@ -626,11 +626,11 @@ def main():
     print("======================================================")
     # define version of the network here; used in tensorboard, loading/saving network weights
     version = "-v3.2.0"
-    param_to_load = None
+    #param_to_load = None
     # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
-    # param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
+    param_to_load = p.join(train_param_path, "unet-v3.2.0_epoch_2000_FINAL.pth")
     tb = SummaryWriter('./runs/unet' + version)
-    device = set_device()  # set device to CUDA if available
+    device = set_device(0)  # set device to CUDA if available
     net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask) # for output mask, change true, and remove train_dev
     train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     #show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
