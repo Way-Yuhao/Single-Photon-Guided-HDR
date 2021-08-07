@@ -47,8 +47,8 @@ else:  # full model
 # spad_path = "../data/real_data/fire2/SPAD/"
 
 """Hyper Parameters"""
-init_lr = 0.0005      # initial learning rate
-epoch = 1000         # number of epochs used in training
+init_lr = 0.001      # initial learning rate
+epoch = 2000         # number of epochs used in training
 
 if mini_model:
     num_workers_train = 0
@@ -65,17 +65,14 @@ CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
 CMOS_sat = CMOS_fwc / CMOS_T  # saturation value of the CMOS simulated images
 
 
-def set_device(devidx=0):
+def set_device():
     """
     Sets device to CUDA if available
     :return: CUDA device 0, if available
     """
     if torch.cuda.is_available():
-        if devidx==0:
-            device = torch.device("cuda:0")
-        elif devidx==1:
-            device = torch.device("cuda:1")
-        print("CUDA is available. Training on GPU devidx =", devidx)
+        device = torch.device("cuda:0")
+        print("CUDA is available. Training on GPU")
     else:
         device = "cpu"
         print("CUDA is unavailable. Training on CPU")
@@ -404,12 +401,13 @@ def dev(net, device, dev_loader, epoch_idx, tb, target_idx=0, vgg_net=None):
     return dev_loss, sample_output
 
 
-def train_dev(net, device, tb, pre_trained_params_path=None):
+def train_dev(net, device, tb, load_weights=False, pre_trained_params_path=None):
     """
     performs a train/dev split, and then runs training while computing dev loss at each epoch
     :param net: pytorch model object
     :param device: CUDA device, if available
     :param tb: tensorboard object
+    :param load_weights: boolean flag, set true to load pre-trained weights
     :param pre_trained_params_path: path to load pre-trained network weights
     :return: None
     """
@@ -422,7 +420,7 @@ def train_dev(net, device, tb, pre_trained_params_path=None):
     vgg_net = VGGLoss()
     vgg_net.to(device)
 
-    if pre_trained_params_path is not None: 
+    if load_weights:
         load_network_weights(net, pre_trained_params_path)
     # splitting train/dev set
     validation_split = .2
@@ -445,7 +443,7 @@ def train_dev(net, device, tb, pre_trained_params_path=None):
                                                                                            len(dev_loader)))
     num_mini_batches = len(train_loader)
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[500, 1000, 1500], gamma=1.0)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[500, 1000, 1500], gamma=.8)
 
     # training loop
     running_train_loss = 0.0
@@ -539,7 +537,7 @@ def show_predictions(net, device, target_idx, pre_trained_params_path):
     vgg_net = VGGLoss()
     vgg_net.to(device)
 
-    if target_idx == -1:  # batch
+    if target_idx is -1:  # batch
         show_pred_all(net, device, test_iter, len(test_loader))
     else:  # single
         print("testing on {} images, index = {}".format(batch_size, target_idx))
@@ -624,25 +622,22 @@ def main():
     global batch_size, version
     print("======================================================")
     # define version of the network here; used in tensorboard, loading/saving network weights
-    version = "-v3.2.0"
-    #param_to_load = None
+    version = "-v3.1.1"
     # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
-    param_to_load = p.join(train_param_path, "unet-v3.2.0_epoch_2000_FINAL.pth")
+    # param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
     tb = SummaryWriter('./runs/unet' + version)
-    device = set_device(0)  # set device to CUDA if available
-    net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask) # for output mask, change true, and remove train_dev
-    train_dev(net, device, tb, pre_trained_params_path=param_to_load)
-    #show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
-    #show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
+    device = set_device()  # set device to CUDA if available
+    # net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
+    # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
+    # show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
+    # show_prediction_real_data(net, device, pre_trained_params_path=param_to_load)
 
     ########## ablation study ############
-    # net_no_att = HDRNetNoAttention(isMonochrome=True)
-    # train_dev(net_no_att, device, tb, load_weights=False, pre_trained_params_path=None)
+    net_no_att = HDRNetNoAttention(isMonochrome=True)
+    train_dev(net_no_att, device, tb, load_weights=False, pre_trained_params_path=None)
 
     # net_no_spad = HDRNetNoSpad(isMonochrome=True)
     # train_dev(net_no_spad, device, tb, load_weights=False, pre_trained_params_path=None)
-
-
 
     tb.close()  # closes tensorbaord
     flush_plt()  # useful only in PyCharm
