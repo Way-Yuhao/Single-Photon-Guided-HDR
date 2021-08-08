@@ -31,7 +31,7 @@ def get_args():
     return args
 
 
-def set_device():
+def set_device(devidx=0):
     """
     Sets device to CUDA if available
     :return: CUDA device 0, if available
@@ -39,7 +39,10 @@ def set_device():
     if args.cpu:
         return "cpu"
     elif torch.cuda.is_available():
-        device = torch.device("cuda:0")
+        if devidx==0:
+            device = torch.device("cuda:0")
+        elif devidx==1:
+            device = torch.device("cuda:1")
         print("CUDA is available. Testing on gpu")
     else:
         device = "cpu"
@@ -158,8 +161,7 @@ def test(net, device):
     spad_gain = 1.0 if not args.gain else args.gain
 
     net.to(device)
-    vgg_net = VGGLoss()
-    vgg_net.to(device)
+    vgg_net = VGGLoss(device)
 
     loss_values = np.zeros(dataset_size)
     for i in tqdm(range(dataset_size)):
@@ -188,7 +190,7 @@ def test(net, device):
 def main():
     global args
     args = get_args()
-    device = set_device()
+    device = set_device(1)
     print_args(device)
     net = IntensityGuidedHDRNet(isMonochrome=True, outputMask=False)
     test(net, device)

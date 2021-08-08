@@ -65,13 +65,16 @@ CMOS_T = .01  # exposure time of the CMOS sensor, in seconds
 CMOS_sat = CMOS_fwc / CMOS_T  # saturation value of the CMOS simulated images
 
 
-def set_device():
+def set_device(devidx=0):
     """
     Sets device to CUDA if available
     :return: CUDA device 0, if available
     """
     if torch.cuda.is_available():
-        device = torch.device("cuda:1")
+        if devidx==0:
+            device = torch.device("cuda:0")
+        if devidx==1:
+            device = torch.device("cuda:1")
         print("CUDA is available. Training on GPU")
     else:
         device = "cpu"
@@ -627,7 +630,7 @@ def main():
     # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
     # param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
     tb = SummaryWriter('./runs/unet' + version)
-    device = set_device()  # set device to CUDA if available
+    device = set_device(1)  # set device to CUDA if available
     net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
     train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
