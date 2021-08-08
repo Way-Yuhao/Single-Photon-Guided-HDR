@@ -48,7 +48,7 @@ else:  # full model
 
 """Hyper Parameters"""
 init_lr = 0.001      # initial learning rate
-epoch = 2000         # number of epochs used in training
+epoch = 2500         # number of epochs used in training
 
 if mini_model:
     num_workers_train = 0
@@ -624,11 +624,11 @@ def main():
     global batch_size, version
     print("======================================================")
     # define version of the network here; used in tensorboard, loading/saving network weights
-    version = "-v3.2.1"
+    version = "-v3.2.0-no-att"
     # param_to_load = p.join(train_param_path, "unet{}_epoch_{}_FINAL.pth".format(version, epoch))
     # param_to_load = p.join(train_param_path, "unet-v2.15.14_epoch_1819_OPT.pth")
     tb = SummaryWriter('./runs/unet' + version)
-    device = set_device()  # set device to CUDA if available
+    device = set_device(1)  # set device to CUDA if available
     # net = IntensityGuidedHDRNet(isMonochrome=monochrome, outputMask=visualize_mask)
     # train_dev(net, device, tb, load_weights=False, pre_trained_params_path=param_to_load)
     # show_predictions(net, device, target_idx=-1, pre_trained_params_path=param_to_load)
