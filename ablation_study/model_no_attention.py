@@ -29,10 +29,10 @@ class HDRNetNoAttention(nn.Module):
 
         # decoder
         self.DeConv6 = DeConvBlock(in_ch=main_chs[6], out_ch=main_chs[5])
-        self.DeConv5 = DeConvBlock(in_ch=2 * main_chs[5], out_ch=main_chs[4])
-        self.DeConv4 = DeConvBlock(in_ch=2 * main_chs[4], out_ch=main_chs[3])
-        self.DeConv3 = DeConvBlock(in_ch=2 * main_chs[3], out_ch=main_chs[2])
-        self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2], out_ch=main_chs[1])
+        self.DeConv5 = DeConvBlock(in_ch=2 * main_chs[5] + side_chs[5], out_ch=main_chs[4])
+        self.DeConv4 = DeConvBlock(in_ch=2 * main_chs[4] + side_chs[4], out_ch=main_chs[3])
+        self.DeConv3 = DeConvBlock(in_ch=2 * main_chs[3] + side_chs[3], out_ch=main_chs[2])
+        self.DeConv2 = DeConvBlock(in_ch=2 * main_chs[2] + side_chs[2], out_ch=main_chs[1])
         self.DeConv1 = DeConvBlock(in_ch=2 * main_chs[1], out_ch=main_chs[0])
 
         # attention gates
@@ -40,14 +40,10 @@ class HDRNetNoAttention(nn.Module):
         # self.Att0 = AttentionBlock(F_g=main_chs[0], F_l=main_chs[0], F_int=1)
 
         # spad encoder, with ReLU
-        self.SpadConv2 = SPADConvLayer(in_ch=side_chs[1], out_ch=side_chs[2], kernel_size=1, stride=1, padding=0,
-                                       bias=True)
-        self.SpadConv3 = SPADConvLayer(in_ch=side_chs[2], out_ch=side_chs[3], kernel_size=2, stride=2, padding=0,
-                                       bias=True)
-        self.SpadConv4 = SPADConvLayer(in_ch=side_chs[3], out_ch=side_chs[4], kernel_size=2, stride=2, padding=0,
-                                       bias=True)
-        self.SpadConv5 = SPADConvLayer(in_ch=side_chs[4], out_ch=side_chs[5], kernel_size=2, stride=2, padding=0,
-                                       bias=True)
+        self.SpadConv2 = SPADConvLayer(in_ch=side_chs[1], out_ch=side_chs[2], kernel_size=1, stride=1, padding=0, bias=True)
+        self.SpadConv3 = SPADConvLayer(in_ch=side_chs[2], out_ch=side_chs[3], kernel_size=2, stride=2, padding=0, bias=True)
+        self.SpadConv4 = SPADConvLayer(in_ch=side_chs[3], out_ch=side_chs[4], kernel_size=2, stride=2, padding=0, bias=True)
+        self.SpadConv5 = SPADConvLayer(in_ch=side_chs[4], out_ch=side_chs[5], kernel_size=2, stride=2, padding=0, bias=True)
 
         # final encoder: output # of channel is 3 for RGB, 1 for monochrome
         self.ConvOut = OneByOneConvBlock(in_ch=2 * main_chs[0], out_ch=main_chs[0] - isMonochrome * 2)
