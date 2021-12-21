@@ -1,0 +1,265 @@
+<html><head lang="en"><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+    <title>SPC-Guided HDR</title>
+
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- <link rel="icon" type="image/png" href="./assets/icon.png"> -->
+    <link rel="stylesheet" href="./index_files/bootstrap.min.css">
+    <link rel="stylesheet" href="./index_files/font-awesome.min.css">
+    <link rel="stylesheet" href="./index_files/codemirror.min.css">
+    <link rel="stylesheet" href="./index_files/app.css">
+    <link rel="stylesheet" href="./index_files/bootstrap.min(1).css">
+    
+    <link rel="stylesheet" href="./custom.css">
+
+    <script type="text/javascript" async="" src="./index_files/analytics.js"></script>
+    <script type="text/javascript" async="" src="./index_files/analytics(1).js"></script>
+    <script async="" src="./index_files/js"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-110862391-3');
+    </script>
+
+    <script src="./index_files/jquery.min.js"></script>
+    <script src="./index_files/bootstrap.min.js"></script>
+    <script src="./index_files/codemirror.min.js"></script>
+    <script src="./index_files/clipboard.min.js"></script>
+
+    <script src="./index_files/app.js"></script>
+</head>
+
+<body data-gr-c-s-loaded="true">
+    <div class="container" id="main">
+        <div class="row">
+            <h1 class="col-md-12 text-center">
+                Single-Photon Camera Guided <br>Extreme Dynamic Range Imaging
+            <br /><br />
+            <small>
+                IEEE/CVF Winter Conference on Applications of Computer Vision (WACV 2022)
+            </small>
+            <br /><br />
+            </h1>
+        </div>
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <ul class="list-inline">
+                    <li>
+                        <a href="https://github.com/Way-Yuhao" target="_blank">
+                          Yuhao Liu
+                        </a><sup>1</sup>
+                    </li>
+                    <li>
+                        <a href="http://pages.cs.wisc.edu/~felipe/" target="_blank">
+                          Felipe Gutierrez-Barragan
+                        </a><sup>1</sup>
+                    </li>
+                    <li>
+                        <a href="https://www.atulingle.com/" target="_blank">
+                            Atul Ingle
+                        </a>
+                        <sup>1</sup>
+                    </li>
+                    <li>
+                        <a href="https://wisionlab.cs.wisc.edu/people/mohit-gupta/" target="_blank">
+                          Mohit Gupta
+                        </a><sup>1</sup>
+                    </li>
+                    <li>
+                        <a href="https://biostat.wisc.edu/~velten/" target="_blank">
+                            Andreas Velten
+                        </a>
+                        <sup>1</sup>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <ul class="list-inline">
+                    <li>
+                        <sup>1</sup>
+                        <a href="https://www.sensebrain.ai/" target="_blank">
+                            University of Wisconsin-Madison
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- <div class="row">
+            <div class="col-md-12 text-center">
+                <ul class="list-inline">
+                    <li>
+                        <sup>*</sup>Work completed during internship at SenseBrain
+                    </li>
+                </ul>
+            </div>
+        </div> -->
+
+        <div class="row">
+                <div class="col-md-8 col-md-offset-2 text-center">
+                    <ul class="nav nav-pills nav-justified">
+                        <li>
+                            <a href="" target="_blank">
+                            <img src="./assets/paper.png" height="120px"><br>
+                                <h4><strong>Paper (TBD)</strong></h4>
+                            </a>
+                        </li>
+                        <!-- <li>
+                            <a href="" target="_blank">
+                            <img src="./assets/paper.png" height="120px"><br>
+                                <h4><strong>Arxiv</strong></h4>
+                            </a>
+                        </li> -->
+                        <li>
+                            <a href="" target="_blank">
+                            <img src="./assets/youtube_icon_dark.png" height="120px"><br>
+                                <h4><strong>Video</strong></h4>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="">
+                            <img src="./assets/github_pad.png" height="120px"><br>
+                                <h4><strong>Code (TBD)</strong></h4>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#Dataset">
+                            <img src="./assets/dataNew.png" height="120px"><br>
+                                <h4><strong>Dataset</strong></h4>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+        </div>
+
+<!-- 
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    &nbsp&nbsp&nbsp
+                </h3>
+                <video id="v0" width="100%" autoplay="" loop="" muted="" controls="">
+                  <source src="http://cseweb.ucsd.edu/~viscomp/projects/CVPR21OpenRooms/example.mp4" type="video/mp4">
+                </video>
+            </div>
+        </div> -->
+
+
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Overview
+                </h3>
+                <img src="./assets/wacv_poster_coverimg.png" class="img-responsive" alt="overview"><br>
+                <p class="text-justify">
+                    Reconstruction of high-resolution extreme dynamic range images from a small
+                    number of low dynamic range (LDR) images is crucial for many computer vision
+                    applications. 
+                    Current high dynamic range (HDR) cameras based on CMOS image sensor technology
+                    rely on multi-exposure bracketing which suffers from motion artifacts and
+                    signal-to-noise (SNR) dip artifacts in extreme dynamic range scenes.
+                    Recently, single-photon cameras (SPCs) have been shown to achieve orders of
+                    magnitude higher dynamic range for passive imaging than conventional CMOS
+                    sensors. SPCs are becoming increasingly available commercially, even in some
+                    consumer devices. Unfortunately, current SPCs suffer from low spatial
+                    resolution. To overcome the limitations of CMOS and SPC sensors, we propose
+                    a learning-based CMOS-SPC fusion method to recover high-resolution extreme
+                    dynamic range images.
+                    We compare the performance of our method against various traditional and
+                    state-of-the-art baselines using both synthetic and experimental data. Our
+                    method outperforms these baselines, both in terms of visual quality and
+                    quantitative metrics.
+                </p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Highlights
+                </h3>
+                <p class="text-justify">
+                    <ul>
+                        <li>
+                            CMOS-SPC sensor fusion model for extreme dynamic range imaging from only two images.                         
+                        </li>
+                        <li>
+                            Analysis of artifacts produced by existing high dynamic range imaging approaches that only use one or two images.                        
+                        </li>
+                        <!-- <li>
+                            A synthetic iToF dataset with realistic geometry, textures, and noise.                        
+                        </li> -->
+                    </ul>
+                </p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Video Overview
+                </h3>
+                <div class="text-center">
+                    <!-- <video id="v0" width="100%" autoplay="" loop="" muted="" controls="">
+                        <source src="http://cseweb.ucsd.edu/~viscomp/projects/CVPR21OpenRooms/video.mp4" type="video/mp4">
+                    </video> -->
+                    <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/tEMinzXNTv8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>                
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <a id="Dataset"> </a>
+                <h3>
+                    Dataset
+                </h3>
+                <p class='text-justify'>
+                    The dataset contains ... 
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Bibtex Citation
+                </h3>
+                <div class="bibtexsection">
+                    @inproceedings{liu2022single,
+                        title={Single-photon Camera Guided
+                        Extreme Dynamic Range Imaging},
+                        author={
+                            Liu, Yuhao 
+                            and Gutierrez-Barragan, Felipe 
+                            and Ingle, Atul 
+                            and Gupta, Mohit
+                            and Velten, Andreas 
+                        },
+                        booktitle={Proceedings of the IEEE/CVF Winter Conference 
+                            on Applications of Computer Vision},
+                        <!-- pages={1566--1574}, -->
+                        year={2022}
+                      }
+    </div>
+        </div>
+        </div>
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <h3>
+                    Acknowledgments
+                </h3>
+                The website template was borrowed from <a href="http://mgharbi.com/">Michaël Gharbi</a>.
+            </div>
+        </div>
+    
+    </div>
+
+
+</body></html>
