@@ -68,40 +68,42 @@ def disp_ccd():
 
 
 def dual_ccd():
-    x = np.logspace(2, 11, 100)
+    x = np.logspace(2, 11, 1000)
     y = np.zeros(x.shape)
     for i in range(len(y)):
         y1 = ccd_snr(x[i], T_long)
         y2 = ccd_snr(x[i], T_short)
         y[i] = max(y1, y2)
-    plt.plot(x, y, "orange", label="Dual CCDs, T = {}s & {} s".format(T_long, T_short))
+    plt.plot(x, y, linewidth=3, label="Dual CCDs, T = {}s & {} s".format(T_long, T_short))
 
 
 def ccd_n_spad():
-    x = np.logspace(2, 11, 100)
+    x = np.logspace(2, 11, 1000)
     y= np.zeros(x.shape)
     for i in range(len(x)):
         y1 = ccd_snr(x[i], T_long)
         y2 = spad_snr(x[i])
         y[i] = max(y1, y2)
-    plt.plot(x, y, "green", label="CCD + SPAD Hybrid, both T={} s".format(T_long))
+    plt.plot(x, y, linewidth=3, label="CCD + SPAD Hybrid, both T={} s".format(T_long))
 
 
 def main():
     # disp_spad()
     # disp_ccd()
+    fig = plt.figure(figsize=(7, 4))
     dual_ccd()
     ccd_n_spad()
     plt.xscale("log")
-    plt.ylim(top=70, bottom=-20)
+    plt.ylim(top=55, bottom=0)
     plt.xlim([10 ** 2.5, 10 ** 11.5])
-    plt.title("Theoretical SNR vs Incident Flux")
-    plt.ylabel("theoretical SNR (dB)")
-    plt.xlabel("incident photon flux")
-    plt.legend(loc="upper left")
+    plt.grid(linestyle="--")
+    # plt.title("Theoretical SNR vs Incident Flux")
+    # plt.ylabel("theoretical SNR (dB)")
+    # plt.xlabel("incident photon flux")
+    # plt.legend(loc="upper left")
     # plt.show()
 
-    out_path = "../paper/asset/snr_curve_xlim.svg"
+    out_path = "../paper/asset/snr_curve_short.svg"
     plt.savefig(out_path, format="svg")
 
 
