@@ -64,7 +64,7 @@ Parameters and their descriptions:
 >```experimental```: toggle if testing on experimental data / no ground truth provided.<br/>
 >```plot```: toggle if intend to use plt.show() to visualize outputs.<br/>
 
-## Citation
+## 4. Citation
 If you find this useful, please cite
 ```
 @InProceedings{Liu_2022_WACV,
@@ -76,3 +76,8 @@ If you find this useful, please cite
     pages     = {1575-1585}
 }
 ```
+## 5. Acknowledgment 
+
+Acknowledgments: This work was supported in part by the U.S. Department of Energy/NNSA (DE-NA0003921), National Science Foundation (CAREER 1846884 and 1943149), and UW-Madison’s Draper Technology Innovation Fund. The authors would like to thank the Computational Imaging Group at Rice University for providing conference travel funds for Yuhao Liu. U.S. DoE full legal disclaimer: https://www.osti.gov/stip/about/disclaimer.
+
+We used a standard unet (https://github.com/bigmb/Unet-Segmentation-Pytorch-Nest-of-Unets) as a starting point for our network. Our latest version does not contain any code from the standard unet.
