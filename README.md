@@ -1,6 +1,7 @@
 # [WACV 2022] Single Photon Camera Guided HDR Imaging
 
-Project webpage
+Project webpage: https://www.yuhaoliu.net/spc-guided-hdr
+Paper: https://openaccess.thecvf.com/content/WACV2022/html/Liu_Single-Photon_Camera_Guided_Extreme_Dynamic_Range_Imaging_WACV_2022_paper.html
 
 ## 1. Getting Started
 
