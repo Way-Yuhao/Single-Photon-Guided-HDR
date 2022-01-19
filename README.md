@@ -76,5 +76,3 @@ If you find this useful, please cite
     pages     = {1575-1585}
 }
 ```
-## License
-TODO
