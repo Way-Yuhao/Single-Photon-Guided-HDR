@@ -1,4 +1,6 @@
-# Single Photon Camera Guided HDR Imaging
+# [WACV 2022] Single Photon Camera Guided HDR Imaging
+
+Project webpage
 
 ## 1. Getting Started
 
@@ -61,7 +63,17 @@ Parameters and their descriptions:
 >```experimental```: toggle if testing on experimental data / no ground truth provided.<br/>
 >```plot```: toggle if intend to use plt.show() to visualize outputs.<br/>
 
-## Contact
-TODO
+## Citation
+If you find this useful, please cite
+```
+@InProceedings{Liu_2022_WACV,
+    author    = {Liu, Yuhao and Gutierrez-Barragan, Felipe and Ingle, Atul and Gupta, Mohit and Velten, Andreas},
+    title     = {Single-Photon Camera Guided Extreme Dynamic Range Imaging},
+    booktitle = {Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+    month     = {January},
+    year      = {2022},
+    pages     = {1575-1585}
+}
+```
 ## License
 TODO
