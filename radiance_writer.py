@@ -2,7 +2,7 @@
 """
 Created on Mon Jul 23 11:17:21 2018
 
-@author: ingle, yuhao
+@author https://gist.github.com/edouardp/3089602
 """
 import numpy as np
 
