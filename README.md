@@ -33,7 +33,7 @@ Install all dependent libraries:
   ```
 
 ### Input file directory structure
->$input directory$<br/>
+>input directory<br/>
 >>CMOS<br/>
 >>SPAD<br/>
 >>ideal (optional)<br/>
