@@ -1,7 +1,8 @@
 # [WACV 2022] Single Photon Camera Guided HDR Imaging
 
-Project webpage: https://www.yuhaoliu.net/spc-guided-hdr <br>
-Paper: https://openaccess.thecvf.com/content/WACV2022/html/Liu_Single-Photon_Camera_Guided_Extreme_Dynamic_Range_Imaging_WACV_2022_paper.html
+[![Project Webpage](https://img.shields.io/badge/Project-Webpage-0A66C2)](https://yuhaoliu.net/projects/spc_guided_hdr.html)
+[![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![Conference Paper | WACV (2022)](https://img.shields.io/badge/Conference%20Paper-WACV%20(2022)-4B5563)](https://openaccess.thecvf.com/content/WACV2022/html/Liu_Single-Photon_Camera_Guided_Extreme_Dynamic_Range_Imaging_WACV_2022_paper.html)
 
 ## 1. Getting Started
 
@@ -13,30 +14,22 @@ Clone the repo:
 
 ## 2. Requirements
 
-```
-python>=3.6
-torch>=0.4.0
-torchvision
-torchsummary
-tensorboardx
-tqdm
-natsort
-numpy
-pillow
-scipy
-scikit-image
-sklearn
-```
-Install all dependent libraries:
+Install dependencies from `requirements.txt`:
+
   ```bash
   pip install -r requirements.txt
   ```
 
 ### Input file directory structure
->input directory<br/>
->>CMOS<br/>
->>SPAD<br/>
->>ideal (optional)<br/>
+
+The input directory passed to `--input` should contain paired CMOS and SPAD image folders:
+
+```text
+input/
+├── CMOS/
+├── SPAD/
+└── ideal/  # optional ground truth images
+```
 
 Both CMOS and SPAD inputs are required. A ground truth (ideal) image can be added to compute the loss of network output.
 
@@ -46,7 +39,7 @@ Both CMOS and SPAD inputs are required. A ground truth (ideal) image can be adde
 ## 3. Usage
 
 ### Pretrained model
-TODO: define pre-trained model
+Please [fill out this form](https://forms.gle/Xo2qL99vpChxLTtx8) to obtain link to our model weights (Google Drive).
 
 ### Inference
 
